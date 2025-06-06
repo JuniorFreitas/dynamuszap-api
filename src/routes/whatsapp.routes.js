@@ -13,51 +13,128 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/whatsapp/start:
+ * /api/whatsapp/connect:
  *   post:
- *     summary: Start a new WhatsApp session
- *     tags: [Session]
+ *     summary: Connect to WhatsApp and start a session
+ *     tags: [WhatsApp]
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - sessionName
  *             properties:
  *               sessionName:
  *                 type: string
  *                 description: Name for the WhatsApp session
+ *                 default: default
  *     responses:
  *       200:
  *         description: Session started successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 status:
- *                   type: string
- *                   example: success
- *                 qrCode:
- *                   type: string
- *                   description: Base64 QR code image
  */
+router.post("/connect", WhatsAppController.startSession);
+
+/**
+ * @swagger
+ * /api/whatsapp/qr-code:
+ *   post:
+ *     summary: Generate QR Code for WhatsApp connection
+ *     tags: [WhatsApp]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sessionName:
+ *                 type: string
+ *                 default: default
+ *     responses:
+ *       200:
+ *         description: QR Code generated successfully
+ */
+router.post("/qr-code", WhatsAppController.generateQRCode);
+
+/**
+ * @swagger
+ * /api/whatsapp/status:
+ *   get:
+ *     summary: Get WhatsApp connection status
+ *     tags: [WhatsApp]
+ *     parameters:
+ *       - in: query
+ *         name: sessionName
+ *         schema:
+ *           type: string
+ *           default: default
+ *     responses:
+ *       200:
+ *         description: Status retrieved successfully
+ */
+router.get("/status", WhatsAppController.getStatus);
+
+/**
+ * @swagger
+ * /api/whatsapp/sync-status:
+ *   post:
+ *     summary: Force sync WhatsApp status via Socket.IO
+ *     tags: [WhatsApp]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sessionName:
+ *                 type: string
+ *                 default: default
+ *     responses:
+ *       200:
+ *         description: Status synced successfully
+ */
+router.post("/sync-status", WhatsAppController.syncStatus);
+
+/**
+ * @swagger
+ * /api/whatsapp/disconnect:
+ *   post:
+ *     summary: Disconnect WhatsApp session
+ *     tags: [WhatsApp]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sessionName:
+ *                 type: string
+ *                 default: default
+ *     responses:
+ *       200:
+ *         description: Session disconnected successfully
+ */
+router.post("/disconnect", WhatsAppController.disconnectSession);
+
+/**
+ * @swagger
+ * /api/whatsapp/sessions:
+ *   get:
+ *     summary: List all active WhatsApp sessions
+ *     tags: [WhatsApp]
+ *     responses:
+ *       200:
+ *         description: Sessions listed successfully
+ */
+router.get("/sessions", WhatsAppController.listSessions);
+
+// Manter compatibilidade com rota antiga
 router.post("/start", startSessionValidation, WhatsAppController.startSession);
 
 /**
  * @swagger
- * /api/whatsapp/{sessionName}/send:
+ * /api/whatsapp/send-message:
  *   post:
- *     summary: Send a WhatsApp message
+ *     summary: Send a single WhatsApp message
  *     tags: [Messages]
- *     parameters:
- *       - in: path
- *         name: sessionName
- *         required: true
- *         schema:
- *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -70,11 +147,57 @@ router.post("/start", startSessionValidation, WhatsAppController.startSession);
  *             properties:
  *               number:
  *                 type: string
- *                 description: Phone number (10-14 digits)
+ *                 description: Phone number with country code
  *               message:
  *                 type: string
  *                 description: Message to send
+ *               sessionName:
+ *                 type: string
+ *                 default: default
+ *     responses:
+ *       200:
+ *         description: Message sent successfully
  */
+router.post("/send-message", WhatsAppController.sendMessage);
+
+/**
+ * @swagger
+ * /api/whatsapp/send-bulk-message:
+ *   post:
+ *     summary: Send bulk WhatsApp messages
+ *     tags: [Messages]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phoneNumbers
+ *               - message
+ *             properties:
+ *               phoneNumbers:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of phone numbers
+ *               message:
+ *                 type: string
+ *                 description: Message to send to all numbers
+ *               delay:
+ *                 type: number
+ *                 default: 1000
+ *                 description: Delay between messages in milliseconds
+ *               sessionName:
+ *                 type: string
+ *                 default: default
+ *     responses:
+ *       200:
+ *         description: Bulk messages sent successfully
+ */
+router.post("/send-bulk-message", WhatsAppController.sendBulkMessage);
+
+// Manter rotas antigas para compatibilidade
 router.post(
   "/:sessionName/send",
   sendMessageValidation,

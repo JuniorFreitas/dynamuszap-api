@@ -1,144 +1,315 @@
-# DYNAMUSZAP API - Notificação e Usabilidade de Bot para WhatsApp
+# DynamusZap API - WhatsApp Automation Platform
 
-[![Version](https://img.shields.io/github/tag/JuniorFreitas/dynamuszap-api.svg)](https://github.com/JuniorFreitas/dynamuszap-api/releases)
-[![Downloads](https://img.shields.io/github/downloads/JuniorFreitas/dynamuszap-api/total)](https://github.com/JuniorFreitas/dynamuszap-api/releases)
-[![Issues](https://img.shields.io/github/issues/JuniorFreitas/dynamuszap-api.svg)](https://github.com/JuniorFreitas/dynamuszap-api/issues)
-[![License: MIT](https://img.shields.io/badge/License-MIT-gree.svg)](https://opensource.org/licenses/MIT)
+Uma plataforma completa para automação do WhatsApp com interface web moderna, Socket.IO para comunicação em tempo real e integração com venom-bot.
 
+## 🚀 Funcionalidades
 
+### WhatsApp
+- ✅ **Conexão Real com WhatsApp** - Conecte sua conta WhatsApp via QR Code
+- ✅ **Gerenciamento de Sessões** - Múltiplas sessões simultâneas
+- ✅ **Envio de Mensagens** - Texto, imagens e documentos PDF
+- ✅ **Envio em Massa** - Disparo para múltiplos contatos com delay configurável
+- ✅ **Validação de Números** - Verificação automática de números válidos
+- ✅ **Histórico de Mensagens** - Acompanhe todas as mensagens enviadas
+- ✅ **Status em Tempo Real** - Monitore o status da conexão
 
-Este projeto é uma API desenvolvida para facilitar a integração de notificações e usabilidade de bots no WhatsApp, utilizando o [Venom Bot](https://github.com/orkestral/venom) para automação. Vale ressaltar que **não se trata de uma API oficial do WhatsApp** e, portanto, não possui as mesmas funcionalidades e limitações.
+### Socket.IO & Tempo Real
+- ✅ **Comunicação Bidirecional** - Eventos em tempo real
+- ✅ **Salas de Chat** - Sistema de salas para organização
+- ✅ **Notificações Push** - Alertas instantâneos
+- ✅ **QR Code Automático** - Exibição automática via Socket.IO
+- ✅ **Status de Conexão** - Monitoramento em tempo real
 
-A API utiliza o **WhatsApp Web** em segundo plano, rodando o Venom Bot, que por sua vez chama o **Puppeteer** para interagir com o navegador e fazer a automação. Com isso, a API é capaz de realizar diversas operações, como o envio de mensagens, notificações e interações básicas com os contatos do WhatsApp.
+### Interface Web
+- ✅ **Dashboard Moderno** - Interface responsiva e intuitiva
+- ✅ **Autenticação** - Sistema de login seguro
+- ✅ **Logs do Sistema** - Monitoramento completo
+- ✅ **Configurações** - Personalização da API
+- ✅ **Tema WhatsApp** - Design inspirado no WhatsApp oficial
 
-### Funcionalidades
+## 🛠️ Tecnologias
 
-- Envio de mensagens de texto para um ou mais contatos.
-- Envio de mídias (imagens, vídeos, documentos).
-- Notificações personalizadas.
-- Respostas automáticas.
-- Integração com outros sistemas via API.
+- **Backend**: Node.js, Express.js
+- **WhatsApp**: venom-bot
+- **Tempo Real**: Socket.IO
+- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
+- **Documentação**: Swagger/OpenAPI
+- **Containerização**: Docker
 
-### Importante
+## 📦 Instalação e Uso
 
-- O projeto não é uma solução oficial do WhatsApp e depende do WhatsApp Web.
-- A automação é realizada por meio do Venom Bot, que interage com o WhatsApp Web utilizando o Puppeteer.
-- Algumas funcionalidades presentes na API oficial do WhatsApp podem não estar disponíveis ou funcionar de maneira diferente.
+### Usando Docker (Recomendado)
 
-A API pode ser útil para diversas situações de automação, como envio de mensagens em massa, notificações e integração com outros sistemas, mas deve ser utilizada com cuidado, respeitando as diretrizes do WhatsApp para evitar bloqueios e penalidades na conta.
-
-
-## ESTRUTURA DE PASTAS
-
-```
-src/
-  ├──__tests__/
-  ├── config/
-  │   ├── app.config.js
-  │   └── swagger.config.js
-  ├── controllers/
-  │   └── WhatsAppController.js
-  ├── middleware/
-  │   ├── errorHandler.js
-  │   ├── rateLimiter.js
-  │   ├── requestValidator.js
-  │   └── sessionValidator.js
-  ├── models/
-  │   └── Session.js
-  ├── routes/
-  │   └── whatsapp.routes.js
-  ├── services/
-  │   └── WhatsAppService.js
-  └── app.js
+1. **Clone o repositório**
+```bash
+git clone <repository-url>
+cd dynamuszap-api
 ```
 
-# Configuração do Ambiente
+2. **Inicie com Docker**
+```bash
+docker compose up -d
+```
 
-Este repositório usa Docker para facilitar o setup do ambiente de desenvolvimento. Siga os passos abaixo para configurar e rodar o projeto localmente.
+3. **Acesse a aplicação**
+- Interface Principal: http://localhost:3000
+- Login: http://localhost:3000/login.html
+- Documentação API: http://localhost:3000/api-docs
+- Teste Socket.IO: http://localhost:3000/socket-test.html
 
-## Pré-requisitos
+### Instalação Manual
 
-Antes de começar, você precisa ter os seguintes softwares instalados:
+1. **Instale as dependências**
+```bash
+npm install
+```
 
-- [Docker](https://www.docker.com/get-started) (para rodar containers)
-- [Docker Compose](https://docs.docker.com/compose/install/) (para orquestrar múltiplos containers)
-
-## Passo a Passo
-
-### 1. Crie o Arquivo `.env`
-
-O arquivo `.env` contém variáveis de ambiente necessárias para a configuração do Docker e outros serviços. Você pode criar esse arquivo a partir do template `.env.example`:
-
+2. **Configure as variáveis de ambiente**
 ```bash
 cp .env.example .env
+# Edite o arquivo .env conforme necessário
 ```
 
-Agora você tem o arquivo `.env` configurado. Se necessário, edite as variáveis de ambiente dentro do arquivo `.env` para refletir suas configurações.
-
-```
-PORT=3000
-URLBASE=http://localhost:3000
-NODE_ENV=development
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-MAX_REQUEST_SIZE=10mb
-SESSION_TIMEOUT=6 => QUANTIDADE DE HORAS QUE BOT VAI ESTA EM SESSAO
-QUEUE_CONCURRENT=1 => QUANTIDADE DE CONCORRENCIAS
-QUEUE_MAX_RETRIES=3 => QUANTIDADE DE RETENTATIVAS
-QUEUE_RETRY_DELAY=3000 => TEMPO DE RETENTATIVAS EM MILISSEGUNDOS
-BOT_ATIVO=N => N - Para Não (S - Para Sim)
-```
-
-### 2. Construa e Inicie os Containers com Docker Compose
-
-Agora que você tem o arquivo `.env` configurado, você pode rodar o Docker Compose para construir e iniciar os containers definidos no arquivo `docker-compose.yml`:
-
+3. **Inicie a aplicação**
 ```bash
-docker compose up --build
+npm start
 ```
 
-Este comando irá:
+## 🔐 Autenticação
 
-- Construir as imagens dos containers (se necessário).
-- Iniciar os containers conforme definido no `docker-compose.yml`.
+**Credenciais padrão:**
+- Usuário: `admin`
+- Senha: `admin@password`
 
-Após alguns instantes, os containers estarão rodando e você poderá acessar o ambiente de desenvolvimento localmente.
+## 📱 Como Conectar o WhatsApp
 
-### 4. Parar os Containers
+### 1. Via Interface Web
 
-Para parar os containers, basta rodar o comando:
+1. Acesse http://localhost:3000
+2. Faça login com as credenciais
+3. Vá para a seção "WhatsApp"
+4. Clique em "Conectar WhatsApp" ou "Gerar QR Code"
+5. Escaneie o QR Code com seu WhatsApp
+6. Aguarde a confirmação de conexão
 
+### 2. Via API
+
+**Conectar WhatsApp:**
 ```bash
-docker-compose down
+curl -X POST http://localhost:3000/api/whatsapp/connect \
+  -H "Content-Type: application/json" \
+  -d '{"sessionName": "default"}'
 ```
 
-Este comando irá parar e remover os containers, mas deixará as imagens intactas, o que permite que você os reinicie com `docker-compose up` rapidamente.
+**Verificar Status:**
+```bash
+curl http://localhost:3000/api/whatsapp/status?sessionName=default
+```
 
-## Dicas
+**Gerar QR Code:**
+```bash
+curl -X POST http://localhost:3000/api/whatsapp/qr-code \
+  -H "Content-Type: application/json" \
+  -d '{"sessionName": "default"}'
+```
 
-- Se você quiser rodar o Docker em segundo plano (modo "detached"), use a flag `-d`:
+## 📨 Enviando Mensagens
 
-  ```bash
-  docker-compose up --build -d
-  ```
+### Mensagem Simples
+```bash
+curl -X POST http://localhost:3000/api/whatsapp/send-message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "number": "5511999999999",
+    "message": "Olá! Esta é uma mensagem de teste.",
+    "sessionName": "default"
+  }'
+```
 
-- Para visualizar os logs dos containers, utilize o comando:
+### Envio em Massa
+```bash
+curl -X POST http://localhost:3000/api/whatsapp/send-bulk-message \
+  -H "Content-Type: application/json" \
+  -d '{
+    "phoneNumbers": ["5511999999999", "5511888888888"],
+    "message": "Mensagem em massa!",
+    "delay": 2000,
+    "sessionName": "default"
+  }'
+```
 
-  ```bash
-  docker-compose logs
-  ```
+## 🔌 Socket.IO - Eventos em Tempo Real
 
-- Caso precise reiniciar os containers, use:
+### Eventos do Cliente (Frontend → Backend)
 
-  ```bash
-  docker-compose restart
-  ```
+```javascript
+// Conectar ao Socket.IO
+const socket = io();
 
-## Contribuições
+// Entrar em uma sala
+socket.emit('joinRoom', 'whatsapp-room');
 
-Se você deseja contribuir para este projeto, fique à vontade para criar um [pull request](https://github.com/JuniorFreitas/dynamuszap-api/pulls) ou relatar um [issue](https://github.com/JuniorFreitas/dynamuszap-api/issues) request. Certifique-se de seguir as diretrizes de codificação e incluir testes quando possível.
+// Enviar mensagem
+socket.emit('sendMessage', {
+  message: 'Olá!',
+  room: 'whatsapp-room'
+});
 
+// Solicitar QR Code
+socket.emit('requestWhatsAppQR');
+```
 
-## License
+### Eventos do Servidor (Backend → Frontend)
 
-Este projeto está licenciado sob a [MIT License](https://opensource.org/license/MIT).
+```javascript
+// QR Code recebido
+socket.on('whatsappQR', (data) => {
+  console.log('QR Code:', data.qrCode);
+  // Exibir QR Code na interface
+});
+
+// WhatsApp conectado
+socket.on('whatsappConnected', (data) => {
+  console.log('WhatsApp conectado:', data);
+});
+
+// WhatsApp desconectado
+socket.on('whatsappDisconnected', () => {
+  console.log('WhatsApp desconectado');
+});
+
+// Nova mensagem recebida
+socket.on('whatsappMessage', (data) => {
+  console.log('Mensagem recebida:', data);
+});
+
+// Notificações
+socket.on('notification', (data) => {
+  console.log('Notificação:', data.message);
+});
+```
+
+## 📊 API Endpoints
+
+### WhatsApp
+- `POST /api/whatsapp/connect` - Conectar WhatsApp
+- `POST /api/whatsapp/disconnect` - Desconectar WhatsApp
+- `POST /api/whatsapp/qr-code` - Gerar QR Code
+- `GET /api/whatsapp/status` - Status da conexão
+- `GET /api/whatsapp/sessions` - Listar sessões ativas
+- `POST /api/whatsapp/send-message` - Enviar mensagem
+- `POST /api/whatsapp/send-bulk-message` - Envio em massa
+
+### Socket.IO
+- `GET /api/socket/stats` - Estatísticas de conexão
+- `POST /api/socket/broadcast` - Broadcast para todos
+- `POST /api/socket/notification` - Enviar notificação
+
+## 🏗️ Estrutura do Projeto
+
+```
+dynamuszap-api/
+├── src/
+│   ├── controllers/        # Controladores da API
+│   ├── services/          # Serviços (WhatsApp, Socket.IO)
+│   ├── routes/            # Rotas da API
+│   ├── middleware/        # Middlewares
+│   ├── models/            # Modelos de dados
+│   └── config/            # Configurações
+├── public/                # Interface web
+│   ├── css/              # Estilos
+│   ├── js/               # JavaScript
+│   ├── index.html        # Dashboard principal
+│   ├── login.html        # Página de login
+│   └── socket-test.html  # Teste Socket.IO
+├── tokens/               # Tokens de sessão WhatsApp
+├── docker-compose.yml    # Configuração Docker
+└── package.json         # Dependências
+```
+
+## 🔧 Configuração Avançada
+
+### Variáveis de Ambiente
+
+```env
+PORT=3333
+NODE_ENV=production
+BOT_ATIVO=S
+CORS_ORIGIN=*
+```
+
+### Configuração do Socket.IO
+
+```javascript
+// src/config/socket.config.js
+module.exports = {
+  events: {
+    CONNECTION: 'connection',
+    DISCONNECT: 'disconnect',
+    WHATSAPP_QR_CODE: 'whatsappQR',
+    WHATSAPP_CONNECTED: 'whatsappConnected',
+    WHATSAPP_DISCONNECTED: 'whatsappDisconnected',
+    WHATSAPP_MESSAGE: 'whatsappMessage'
+  },
+  defaultRooms: {
+    WHATSAPP: 'whatsapp-room',
+    GENERAL: 'general-room',
+    NOTIFICATIONS: 'notifications-room'
+  }
+};
+```
+
+## 🐛 Troubleshooting
+
+### WhatsApp não conecta
+1. Verifique se o QR Code foi escaneado corretamente
+2. Certifique-se de que o WhatsApp Web está funcionando
+3. Verifique os logs: `docker logs dynamuszap-api`
+
+### Socket.IO não funciona
+1. Verifique se a porta 3000 está acessível
+2. Confirme se o CORS está configurado corretamente
+3. Teste a conexão em http://localhost:3000/socket-test.html
+
+### Problemas de Performance
+1. Ajuste o delay entre mensagens em massa
+2. Monitore o uso de memória
+3. Considere usar múltiplas sessões para alto volume
+
+## 📝 Logs e Monitoramento
+
+### Visualizar Logs
+```bash
+# Logs em tempo real
+docker logs -f dynamuszap-api
+
+# Logs específicos
+docker logs dynamuszap-api | grep "WhatsApp"
+```
+
+### Interface de Logs
+- Acesse a seção "Logs" no dashboard
+- Filtre por nível (info, warning, error, success)
+- Exporte logs para arquivo
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch para sua feature
+3. Commit suas mudanças
+4. Push para a branch
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
+
+## 🆘 Suporte
+
+- Documentação: http://localhost:3000/api-docs
+- Issues: GitHub Issues
+- Teste Socket.IO: http://localhost:3000/socket-test.html
+
+---
+
+**Desenvolvido com ❤️ para automação WhatsApp**

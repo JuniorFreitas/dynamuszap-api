@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Code WhatsApp - DynamusZap</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 2rem;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #128c7e;
+      margin-bottom: 1rem;
+      font-size: 1.8rem;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+
+    .qr-container {
+      margin: 2rem 0;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px dashed #ddd;
+      border-radius: 10px;
+      background: #f9f9f9;
+    }
+
+    .qr-code {
+      max-width: 280px;
+      max-height: 280px;
+      border-radius: 10px;
+    }
+
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #25d366;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .status {
+      padding: 1rem;
+      border-radius: 10px;
+      margin: 1rem 0;
+      font-weight: 500;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .status.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    .btn {
+      background: #25d366;
+      color: white;
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 25px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin: 0.5rem;
+    }
+
+    .btn:hover {
+      background: #128c7e;
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .instructions {
+      background: #f8f9fa;
+      padding: 1.5rem;
+      border-radius: 10px;
+      margin-top: 1.5rem;
+      text-align: left;
+    }
+
+    .instructions h3 {
+      color: #128c7e;
+      margin-bottom: 1rem;
+    }
+
+    .instructions ol {
+      padding-left: 1.5rem;
+    }
+
+    .instructions li {
+      margin-bottom: 0.5rem;
+      color: #555;
+    }
+
+    .back-link {
+      margin-top: 2rem;
+    }
+
+    .back-link a {
+      color: #128c7e;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🚀 DynamusZap WhatsApp</h1>
+    <p class="subtitle">Conecte sua conta WhatsApp escaneando o QR Code</p>
+
+    <div id="status" class="status info" style="display: none;">
+      Verificando status da conexão...
+    </div>
+
+    <div id="qr-container" class="qr-container">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Gerando QR Code...</p>
+      </div>
+    </div>
+
+    <div>
+      <button id="generate-btn" class="btn" onclick="generateQR()">
+        🔄 Gerar Novo QR Code
+      </button>
+      <button id="check-status-btn" class="btn" onclick="checkStatus()">
+        📊 Verificar Status
+      </button>
+    </div>
+
+    <div class="instructions">
+      <h3>📱 Como conectar:</h3>
+      <ol>
+        <li>Abra o WhatsApp no seu celular</li>
+        <li>Toque em "Mais opções" (⋮) > "Dispositivos conectados"</li>
+        <li>Toque em "Conectar um dispositivo"</li>
+        <li>Aponte a câmera para o QR Code acima</li>
+        <li>Aguarde a confirmação de conexão</li>
+      </ol>
+    </div>
+
+    <div class="back-link">
+      <a href="/">← Voltar ao Dashboard</a>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let connecting = false;
+
+    // Conectar ao Socket.IO
+    socket.on('connect', () => {
+      console.log('Conectado ao Socket.IO');
+      socket.emit('joinRoom', 'whatsapp-room');
+      checkStatus();
+    });
+
+    // QR Code recebido
+    socket.on('whatsappQR', (data) => {
+      console.log('QR Code recebido');
+      displayQR(data.qrCode);
+      showStatus('QR Code gerado! Escaneie com seu WhatsApp', 'info');
+    });
+
+    // WhatsApp conectado
+    socket.on('whatsappConnected', (data) => {
+      console.log('WhatsApp conectado:', data);
+      showStatus('✅ WhatsApp conectado com sucesso!', 'success');
+      document.getElementById('qr-container').innerHTML = `
+                <div style="color: #25d366; font-size: 4rem;">✅</div>
+                <p style="color: #128c7e; font-weight: bold; margin-top: 1rem;">Conectado!</p>
+            `;
+    });
+
+    // WhatsApp desconectado
+    socket.on('whatsappDisconnected', () => {
+      console.log('WhatsApp desconectado');
+      showStatus('⚠️ WhatsApp desconectado', 'error');
+    });
+
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('status');
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+      statusEl.style.display = 'block';
+    }
+
+    function displayQR(qrCode) {
+      document.getElementById('qr-container').innerHTML = `
+                <img src="${qrCode}" alt="QR Code WhatsApp" class="qr-code">
+            `;
+    }
+
+    async function generateQR() {
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true;
+      btn.textContent = 'Gerando...';
+
+      document.getElementById('qr-container').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Gerando novo QR Code...</p>
+                </div>
+            `;
+
+      try {
+        const response = await fetch('/api/whatsapp/qr-code', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            sessionName: 'default'
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          showStatus('QR Code gerado! Aguarde a exibição...', 'info');
+        } else {
+          showStatus(`Erro: ${result.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao gerar QR:', error);
+        showStatus('Erro ao gerar QR Code', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 Gerar Novo QR Code';
+      }
+    }
+
+    async function checkStatus() {
+      const btn = document.getElementById('check-status-btn');
+      btn.disabled = true;
+      btn.textContent = 'Verificando...';
+
+      try {
+        const response = await fetch('/api/whatsapp/status?sessionName=default');
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          const isConnected = result.data.connected;
+          showStatus(
+            `Status: ${isConnected ? 'Conectado ✅' : 'Desconectado ❌'}`,
+            isConnected ? 'success' : 'error'
+          );
+
+          if (isConnected) {
+            document.getElementById('qr-container').innerHTML = `
+                            <div style="color: #25d366; font-size: 4rem;">✅</div>
+                            <p style="color: #128c7e; font-weight: bold; margin-top: 1rem;">WhatsApp Conectado!</p>
+                        `;
+          } else if (!connecting) {
+            // Se não está conectado, tentar gerar QR automaticamente
+            generateQR();
+          }
+        } else {
+          showStatus(`Erro: ${result.message}`, 'error');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar status:', error);
+        showStatus('Erro ao verificar status', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📊 Verificar Status';
+      }
+    }
+
+    // Verificar status automaticamente quando a página carrega
+    setTimeout(() => {
+      checkStatus();
+    }, 1000);
+
+    // Atualizar status periodicamente
+    setInterval(() => {
+      checkStatus();
+    }, 30000); // A cada 30 segundos
+  </script>
+</body>
+
+</html>

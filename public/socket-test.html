@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DynamusZap - Socket.IO Test</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .status {
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .connected {
+      background-color: #d4edda;
+      color: #155724;
+    }
+
+    .disconnected {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+
+    input,
+    button,
+    select {
+      padding: 8px 12px;
+      margin: 5px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+
+    button {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .messages {
+      height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      background-color: #f8f9fa;
+    }
+
+    .message {
+      margin-bottom: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      background-color: white;
+    }
+
+    .room-controls,
+    .message-controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .stats {
+      background-color: #e7f3ff;
+      border-left: 4px solid #007bff;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>DynamusZap API - Socket.IO Test</h1>
+
+  <div class="container">
+    <h2>Status da Conexão</h2>
+    <div id="connectionStatus" class="status disconnected">Desconectado</div>
+    <div id="socketId"></div>
+  </div>
+
+  <div class="container">
+    <h2>Controle de Salas</h2>
+    <div class="room-controls">
+      <select id="roomSelect">
+        <option value="whatsapp-room">WhatsApp Room</option>
+        <option value="general-room">General Room</option>
+        <option value="notifications-room">Notifications Room</option>
+        <option value="custom">Sala Personalizada</option>
+      </select>
+      <input type="text" id="customRoom" placeholder="Nome da sala personalizada" style="display:none;">
+      <button onclick="joinRoom()">Entrar na Sala</button>
+      <button onclick="leaveRoom()">Sair da Sala</button>
+    </div>
+    <div id="currentRooms">Salas atuais: Nenhuma</div>
+  </div>
+
+  <div class="container">
+    <h2>Enviar Mensagem</h2>
+    <div class="message-controls">
+      <input type="text" id="messageInput" placeholder="Digite sua mensagem">
+      <select id="messageRoom">
+        <option value="">Todas as salas</option>
+        <option value="whatsapp-room">WhatsApp Room</option>
+        <option value="general-room">General Room</option>
+        <option value="notifications-room">Notifications Room</option>
+      </select>
+      <button onclick="sendMessage()">Enviar</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <h2>WhatsApp Controls</h2>
+    <button onclick="requestWhatsAppQR()">Solicitar QR Code</button>
+    <button onclick="requestWhatsAppStatus()">Verificar Status</button>
+  </div>
+
+  <div class="container">
+    <h2>Mensagens Recebidas</h2>
+    <div id="messages" class="messages"></div>
+    <button onclick="clearMessages()">Limpar Mensagens</button>
+  </div>
+
+  <div class="container stats">
+    <h2>Estatísticas</h2>
+    <div id="stats">Carregando...</div>
+    <button onclick="updateStats()">Atualizar</button>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    let currentRooms = [];
+
+    // Elementos DOM
+    const connectionStatus = document.getElementById('connectionStatus');
+    const socketIdDiv = document.getElementById('socketId');
+    const messagesDiv = document.getElementById('messages');
+    const currentRoomsDiv = document.getElementById('currentRooms');
+    const roomSelect = document.getElementById('roomSelect');
+    const customRoomInput = document.getElementById('customRoom');
+    const messageInput = document.getElementById('messageInput');
+    const statsDiv = document.getElementById('stats');
+
+    // Eventos de conexão
+    socket.on('connect', () => {
+      connectionStatus.textContent = 'Conectado';
+      connectionStatus.className = 'status connected';
+      socketIdDiv.textContent = `Socket ID: ${socket.id}`;
+      addMessage('Sistema', 'Conectado ao servidor', 'system');
+    });
+
+    socket.on('disconnect', () => {
+      connectionStatus.textContent = 'Desconectado';
+      connectionStatus.className = 'status disconnected';
+      socketIdDiv.textContent = '';
+      addMessage('Sistema', 'Desconectado do servidor', 'system');
+    });
+
+    // Eventos de mensagem
+    socket.on('messageReceived', (data) => {
+      addMessage(data.from || 'Anônimo', data.message || JSON.stringify(data), 'received');
+    });
+
+    // Eventos de sala
+    socket.on('userJoined', (data) => {
+      addMessage('Sistema', `Usuário ${data.userId} entrou na sala ${data.room}`, 'system');
+    });
+
+    socket.on('userLeft', (data) => {
+      addMessage('Sistema', `Usuário ${data.userId} saiu da sala ${data.room}`, 'system');
+    });
+
+    // Eventos do WhatsApp
+    socket.on('whatsappQrCode', (data) => {
+      addMessage('WhatsApp', `QR Code recebido: ${data.qrCode}`, 'whatsapp');
+    });
+
+    socket.on('whatsappConnected', (data) => {
+      addMessage('WhatsApp', `Conectado: ${JSON.stringify(data.clientInfo)}`, 'whatsapp');
+    });
+
+    socket.on('whatsappDisconnected', () => {
+      addMessage('WhatsApp', 'Desconectado', 'whatsapp');
+    });
+
+    socket.on('whatsappMessage', (data) => {
+      addMessage('WhatsApp', `Nova mensagem: ${JSON.stringify(data)}`, 'whatsapp');
+    });
+
+    // Eventos de notificação
+    socket.on('notification', (data) => {
+      addMessage('Notificação', JSON.stringify(data), 'notification');
+    });
+
+    // Mostrar/ocultar campo de sala personalizada
+    roomSelect.addEventListener('change', (e) => {
+      if (e.target.value === 'custom') {
+        customRoomInput.style.display = 'inline-block';
+      } else {
+        customRoomInput.style.display = 'none';
+      }
+    });
+
+    function joinRoom() {
+      let room = roomSelect.value;
+      if (room === 'custom') {
+        room = customRoomInput.value.trim();
+        if (!room) {
+          alert('Digite o nome da sala personalizada');
+          return;
+        }
+      }
+
+      socket.emit('joinRoom', room);
+      if (!currentRooms.includes(room)) {
+        currentRooms.push(room);
+        updateCurrentRooms();
+      }
+      addMessage('Sistema', `Entrando na sala: ${room}`, 'system');
+    }
+
+    function leaveRoom() {
+      let room = roomSelect.value;
+      if (room === 'custom') {
+        room = customRoomInput.value.trim();
+        if (!room) {
+          alert('Digite o nome da sala personalizada');
+          return;
+        }
+      }
+
+      socket.emit('leaveRoom', room);
+      currentRooms = currentRooms.filter(r => r !== room);
+      updateCurrentRooms();
+      addMessage('Sistema', `Saindo da sala: ${room}`, 'system');
+    }
+
+    function sendMessage() {
+      const message = messageInput.value.trim();
+      const room = document.getElementById('messageRoom').value || null;
+
+      if (!message) {
+        alert('Digite uma mensagem');
+        return;
+      }
+
+      const data = { message };
+      if (room) {
+        data.room = room;
+      }
+
+      socket.emit('sendMessage', data);
+      addMessage('Você', message, 'sent');
+      messageInput.value = '';
+    }
+
+    function requestWhatsAppQR() {
+      socket.emit('requestWhatsAppQR');
+      addMessage('Sistema', 'Solicitando QR Code do WhatsApp...', 'system');
+    }
+
+    function requestWhatsAppStatus() {
+      socket.emit('whatsAppStatus');
+      addMessage('Sistema', 'Verificando status do WhatsApp...', 'system');
+    }
+
+    function addMessage(from, message, type = 'default') {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = 'message';
+
+      const timestamp = new Date().toLocaleTimeString();
+      let color = '#333';
+
+      switch (type) {
+        case 'system': color = '#6c757d'; break;
+        case 'sent': color = '#007bff'; break;
+        case 'received': color = '#28a745'; break;
+        case 'whatsapp': color = '#25d366'; break;
+        case 'notification': color = '#ffc107'; break;
+      }
+
+      messageDiv.innerHTML = `
+                <strong style="color: ${color}">[${timestamp}] ${from}:</strong> 
+                <span>${message}</span>
+            `;
+
+      messagesDiv.appendChild(messageDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function clearMessages() {
+      messagesDiv.innerHTML = '';
+    }
+
+    function updateCurrentRooms() {
+      currentRoomsDiv.textContent = `Salas atuais: ${currentRooms.length > 0 ? currentRooms.join(', ') : 'Nenhuma'}`;
+    }
+
+    function updateStats() {
+      // Aqui você pode fazer uma requisição para obter estatísticas do servidor
+      statsDiv.innerHTML = `
+                <strong>Socket ID:</strong> ${socket.id || 'N/A'}<br>
+                <strong>Status:</strong> ${socket.connected ? 'Conectado' : 'Desconectado'}<br>
+                <strong>Salas:</strong> ${currentRooms.join(', ') || 'Nenhuma'}<br>
+                <strong>Última atualização:</strong> ${new Date().toLocaleString()}
+            `;
+    }
+
+    // Permitir envio de mensagem com Enter
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        sendMessage();
+      }
+    });
+
+    // Atualizar estatísticas periodicamente
+    setInterval(updateStats, 5000);
+    updateStats();
+  </script>
+</body>
+
+</html>

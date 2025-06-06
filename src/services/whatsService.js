@@ -43,10 +43,34 @@ class WhatsAppService {
     return venom.create(
       sessionName,
       onQrCode,
-      (statusSession) => console.log("Status da sessão:", statusSession),
+      (statusSession, session) => {
+        console.log("Status da sessão:", statusSession);
+        if (statusSession === "inChat" || statusSession === "qrReadSuccess") {
+          console.log("WhatsApp conectado com sucesso!");
+        }
+      },
       {
         multidevice: true,
         headless: "new",
+        devtools: false,
+        useChrome: true,
+        debug: false,
+        logQR: true,
+        browserWS: "",
+        addProxy: [""],
+        puppeteerOptions: {
+          userDataDir: `./tokens/${sessionName}`,
+          args: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-accelerated-2d-canvas",
+            "--no-first-run",
+            "--no-zygote",
+            "--disable-gpu",
+          ],
+        },
+        session: sessionName,
       }
     );
   }

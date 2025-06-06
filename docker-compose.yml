@@ -4,7 +4,7 @@ services:
     container_name: dynamuszap-api
     build: .
     ports:
-      - "3000:3000"
+      - "${PORT:-3333}:${PORT:-3333}"
     volumes:
       - .:/app
       - /app/node_modules

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teste de Conectividade - DynamusZap</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .test-item {
+      margin: 10px 0;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .success {
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+
+    .error {
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+
+    .info {
+      background-color: #d1ecf1;
+      border-color: #bee5eb;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Teste de Conectividade - DynamusZap</h1>
+
+  <div id="results"></div>
+
+  <button onclick="testAPI()">Testar API</button>
+  <button onclick="testSocket()">Testar Socket.IO</button>
+  <button onclick="testWhatsApp()">Testar WhatsApp Status</button>
+  <button onclick="clearResults()">Limpar</button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const apiUrl = "http://localhost:3333";
+    let socket = null;
+
+    function addResult(message, type = 'info') {
+      const div = document.createElement('div');
+      div.className = `test-item ${type}`;
+      div.innerHTML = `<strong>${new Date().toLocaleTimeString()}</strong>: ${message}`;
+      document.getElementById('results').appendChild(div);
+    }
+
+    async function testAPI() {
+      addResult("Testando conectividade da API...", "info");
+
+      try {
+        const response = await fetch(`${apiUrl}/api/socket/stats`);
+        const data = await response.json();
+
+        if (data.success) {
+          addResult(`✅ API funcionando! Conexões ativas: ${data.data.totalConnections}`, "success");
+        } else {
+          addResult("❌ API retornou erro: " + JSON.stringify(data), "error");
+        }
+      } catch (error) {
+        addResult("❌ Erro ao conectar na API: " + error.message, "error");
+      }
+    }
+
+    function testSocket() {
+      addResult("Testando conectividade do Socket.IO...", "info");
+
+      try {
+        socket = io();
+
+        socket.on('connect', () => {
+          addResult("✅ Socket.IO conectado! ID: " + socket.id, "success");
+
+          // Entrar nas salas padrão
+          socket.emit('joinRoom', 'whatsapp-room');
+          socket.emit('joinRoom', 'general-room');
+          addResult("📡 Entrando nas salas padrão...", "info");
+        });
+
+        socket.on('disconnect', () => {
+          addResult("⚠️ Socket.IO desconectado", "error");
+        });
+
+        socket.on('whatsappConnected', (data) => {
+          addResult("✅ Evento WhatsApp conectado recebido: " + JSON.stringify(data), "success");
+        });
+
+        socket.on('whatsappQrCode', (data) => {
+          addResult("📱 QR Code recebido via Socket.IO", "success");
+        });
+
+        socket.on('whatsappDisconnected', () => {
+          addResult("⚠️ WhatsApp desconectado via Socket.IO", "error");
+        });
+
+      } catch (error) {
+        addResult("❌ Erro ao conectar Socket.IO: " + error.message, "error");
+      }
+    }
+
+    async function testWhatsApp() {
+      addResult("Testando status do WhatsApp...", "info");
+
+      try {
+        const response = await fetch(`${apiUrl}/api/whatsapp/status?sessionName=default`);
+        const data = await response.json();
+
+        if (data.status === 'success') {
+          const status = data.data.connected ? "CONECTADO" : "DESCONECTADO";
+          const type = data.data.connected ? "success" : "error";
+          addResult(`📱 WhatsApp Status: ${status} (${data.data.state})`, type);
+        } else {
+          addResult("❌ Erro ao verificar status: " + data.message, "error");
+        }
+      } catch (error) {
+        addResult("❌ Erro ao verificar WhatsApp: " + error.message, "error");
+      }
+    }
+
+    function clearResults() {
+      document.getElementById('results').innerHTML = '';
+    }
+
+    // Teste automático ao carregar
+    window.onload = function () {
+      addResult("🚀 Iniciando testes automáticos...", "info");
+      setTimeout(testAPI, 500);
+      setTimeout(testSocket, 1000);
+      setTimeout(testWhatsApp, 1500);
+    };
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DynamusZap - Login</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #25d366;
+      --secondary-color: #075e54;
+      --accent-color: #128c7e;
+      --danger-color: #dc2626;
+      --warning-color: #f59e0b;
+      --info-color: #3b82f6;
+      --success-color: #10b981;
+      --dark-color: #1f2937;
+      --light-color: #f9fafb;
+      --border-color: #e5e7eb;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      --border-radius: 8px;
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, var(--secondary-color), var(--accent-color), var(--primary-color));
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-primary);
+    }
+
+    .login-container {
+      background: white;
+      padding: 3rem;
+      border-radius: 20px;
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    .logo {
+      margin-bottom: 2rem;
+    }
+
+    .logo i {
+      font-size: 4rem;
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
+
+    .logo h1 {
+      font-size: 2rem;
+      color: var(--secondary-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .logo p {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .login-form {
+      margin-bottom: 2rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .input-container {
+      position: relative;
+    }
+
+    .input-container i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-secondary);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 3rem;
+      border: 2px solid var(--border-color);
+      border-radius: var(--border-radius);
+      font-size: 1rem;
+      transition: var(--transition);
+      background: white;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 1rem;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .login-btn:hover {
+      background: var(--accent-color);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn.loading {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .feature {
+      text-align: center;
+      padding: 1rem;
+      background: var(--light-color);
+      border-radius: var(--border-radius);
+    }
+
+    .feature i {
+      font-size: 1.5rem;
+      color: var(--primary-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .feature h4 {
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+      color: var(--text-primary);
+    }
+
+    .feature p {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .alert {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: var(--border-radius);
+      display: none;
+    }
+
+    .alert.error {
+      background: #fef2f2;
+      color: var(--danger-color);
+      border: 1px solid #fecaca;
+    }
+
+    .alert.success {
+      background: #f0fdf4;
+      color: var(--success-color);
+      border: 1px solid #bbf7d0;
+    }
+
+    .version {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        margin: 1rem;
+        padding: 2rem;
+      }
+
+      .features {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <i class="fab fa-whatsapp"></i>
+      <h1>DynamusZap</h1>
+      <p>API de automação para WhatsApp</p>
+    </div>
+
+    <div class="alert" id="alert"></div>
+
+    <form class="login-form" id="loginForm">
+      <div class="form-group">
+        <label for="username">Usuário:</label>
+        <div class="input-container">
+          <i class="fas fa-user"></i>
+          <input type="text" id="username" name="username" required autocomplete="username" value="admin">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Senha:</label>
+        <div class="input-container">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="password" name="password" required autocomplete="current-password"
+            value="admin@password">
+        </div>
+      </div>
+
+      <button type="submit" class="login-btn" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i>
+        <span>Entrar</span>
+      </button>
+    </form>
+
+    <div class="features">
+      <div class="feature">
+        <i class="fas fa-paper-plane"></i>
+        <h4>Envio de Mensagens</h4>
+        <p>Individual e em massa</p>
+      </div>
+      <div class="feature">
+        <i class="fas fa-broadcast-tower"></i>
+        <h4>Tempo Real</h4>
+        <p>Socket.IO integrado</p>
+      </div>
+      <div class="feature">
+        <i class="fas fa-chart-line"></i>
+        <h4>Dashboard</h4>
+        <p>Estatísticas completas</p>
+      </div>
+      <div class="feature">
+        <i class="fas fa-shield-alt"></i>
+        <h4>Seguro</h4>
+        <p>API protegida</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="version">
+    v1.0.0
+  </div>
+
+  <script>
+    class LoginApp {
+      constructor() {
+        this.form = document.getElementById('loginForm');
+        this.alert = document.getElementById('alert');
+        this.loginBtn = document.getElementById('loginBtn');
+
+        this.init();
+      }
+
+      init() {
+        this.form.addEventListener('submit', (e) => this.handleLogin(e));
+
+        // Check if already logged in
+        if (localStorage.getItem('dynamuszap_logged_in') === 'true') {
+          window.location.href = 'index.html';
+        }
+      }
+
+      async handleLogin(e) {
+        e.preventDefault();
+
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        this.setLoading(true);
+        this.hideAlert();
+
+        try {
+          // Simulate API call (replace with real authentication)
+          await this.authenticate(username, password);
+
+          // Store login state
+          localStorage.setItem('dynamuszap_logged_in', 'true');
+          localStorage.setItem('dynamuszap_username', username);
+
+          this.showAlert('Login realizado com sucesso! Redirecionando...', 'success');
+
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 1500);
+
+        } catch (error) {
+          this.showAlert(error.message, 'error');
+        } finally {
+          this.setLoading(false);
+        }
+      }
+
+      async authenticate(username, password) {
+        // Simple authentication (replace with real API call)
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            if (username === 'admin' && password === 'admin@password') {
+              resolve();
+            } else {
+              reject(new Error('Usuário ou senha incorretos'));
+            }
+          }, 1000);
+        });
+      }
+
+      setLoading(loading) {
+        if (loading) {
+          this.loginBtn.classList.add('loading');
+          this.loginBtn.innerHTML = `
+                        <div class="loading-spinner"></div>
+                        <span>Entrando...</span>
+                    `;
+          this.loginBtn.disabled = true;
+        } else {
+          this.loginBtn.classList.remove('loading');
+          this.loginBtn.innerHTML = `
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Entrar</span>
+                    `;
+          this.loginBtn.disabled = false;
+        }
+      }
+
+      showAlert(message, type) {
+        this.alert.textContent = message;
+        this.alert.className = `alert ${type}`;
+        this.alert.style.display = 'block';
+      }
+
+      hideAlert() {
+        this.alert.style.display = 'none';
+      }
+    }
+
+    // Initialize login app
+    document.addEventListener('DOMContentLoaded', () => {
+      new LoginApp();
+    });
+  </script>
+</body>
+
+</html>
