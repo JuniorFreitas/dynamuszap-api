@@ -1,144 +1,301 @@
-# DYNAMUSZAP API - Notificação e Usabilidade de Bot para WhatsApp
+# 🚀 DynamusZap API - WhatsApp Bot com Docker
 
 [![Version](https://img.shields.io/github/tag/JuniorFreitas/dynamuszap-api.svg)](https://github.com/JuniorFreitas/dynamuszap-api/releases)
 [![Downloads](https://img.shields.io/github/downloads/JuniorFreitas/dynamuszap-api/total)](https://github.com/JuniorFreitas/dynamuszap-api/releases)
 [![Issues](https://img.shields.io/github/issues/JuniorFreitas/dynamuszap-api.svg)](https://github.com/JuniorFreitas/dynamuszap-api/issues)
-[![License: MIT](https://img.shields.io/badge/License-MIT-gree.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
+API robusta para integração com WhatsApp usando Venom Bot, otimizada para Docker com gerenciamento avançado de sessões.
 
+## ✨ Funcionalidades
 
-Este projeto é uma API desenvolvida para facilitar a integração de notificações e usabilidade de bots no WhatsApp, utilizando o [Venom Bot](https://github.com/orkestral/venom) para automação. Vale ressaltar que **não se trata de uma API oficial do WhatsApp** e, portanto, não possui as mesmas funcionalidades e limitações.
+- **🔄 Gerenciamento Inteligente de Sessões**: Criação, monitoramento e recuperação automática
+- **🌐 Interface Web Moderna**: Gerenciador de sessões com QR code em tempo real via Socket.IO
+- **📡 API RESTful Completa**: Endpoints para mensagens, sessões, webhooks e muito mais
+- **🔐 Segurança Avançada**: JWT + API Keys, Rate Limiting, CORS, Input Sanitization
+- **🐳 Docker Otimizado**: Configuração completa para produção com healthchecks
+- **📊 Monitoramento**: Logs estruturados, métricas e diagnósticos automáticos
+- **📚 Documentação Swagger**: API totalmente documentada e testável
 
-A API utiliza o **WhatsApp Web** em segundo plano, rodando o Venom Bot, que por sua vez chama o **Puppeteer** para interagir com o navegador e fazer a automação. Com isso, a API é capaz de realizar diversas operações, como o envio de mensagens, notificações e interações básicas com os contatos do WhatsApp.
+## 🎯 Início Rápido
 
-### Funcionalidades
+### 1. Pré-requisitos
+- Docker e Docker Compose
+- WhatsApp no celular para escanear QR Code
 
-- Envio de mensagens de texto para um ou mais contatos.
-- Envio de mídias (imagens, vídeos, documentos).
-- Notificações personalizadas.
-- Respostas automáticas.
-- Integração com outros sistemas via API.
-
-### Importante
-
-- O projeto não é uma solução oficial do WhatsApp e depende do WhatsApp Web.
-- A automação é realizada por meio do Venom Bot, que interage com o WhatsApp Web utilizando o Puppeteer.
-- Algumas funcionalidades presentes na API oficial do WhatsApp podem não estar disponíveis ou funcionar de maneira diferente.
-
-A API pode ser útil para diversas situações de automação, como envio de mensagens em massa, notificações e integração com outros sistemas, mas deve ser utilizada com cuidado, respeitando as diretrizes do WhatsApp para evitar bloqueios e penalidades na conta.
-
-
-## ESTRUTURA DE PASTAS
-
-```
-src/
-  ├──__tests__/
-  ├── config/
-  │   ├── app.config.js
-  │   └── swagger.config.js
-  ├── controllers/
-  │   └── WhatsAppController.js
-  ├── middleware/
-  │   ├── errorHandler.js
-  │   ├── rateLimiter.js
-  │   ├── requestValidator.js
-  │   └── sessionValidator.js
-  ├── models/
-  │   └── Session.js
-  ├── routes/
-  │   └── whatsapp.routes.js
-  ├── services/
-  │   └── WhatsAppService.js
-  └── app.js
-```
-
-# Configuração do Ambiente
-
-Este repositório usa Docker para facilitar o setup do ambiente de desenvolvimento. Siga os passos abaixo para configurar e rodar o projeto localmente.
-
-## Pré-requisitos
-
-Antes de começar, você precisa ter os seguintes softwares instalados:
-
-- [Docker](https://www.docker.com/get-started) (para rodar containers)
-- [Docker Compose](https://docs.docker.com/compose/install/) (para orquestrar múltiplos containers)
-
-## Passo a Passo
-
-### 1. Crie o Arquivo `.env`
-
-O arquivo `.env` contém variáveis de ambiente necessárias para a configuração do Docker e outros serviços. Você pode criar esse arquivo a partir do template `.env.example`:
-
+### 2. Instalação Automática
 ```bash
-cp .env.example .env
+# Clonar o repositório
+git clone <repository-url>
+cd dynamuszap-api
+
+# Iniciar com um comando (recomendado)
+./start-docker.sh
 ```
 
-Agora você tem o arquivo `.env` configurado. Se necessário, edite as variáveis de ambiente dentro do arquivo `.env` para refletir suas configurações.
+### 3. Acesso Imediato
+- **🌐 API**: http://localhost:3333
+- **📖 Documentação**: http://localhost:3333/api-docs  
+- **📱 Gerenciador de Sessões**: http://localhost:3333/sessions.html
 
+## 🔧 Configuração Avançada
+
+### Variáveis de Ambiente Otimizadas
+```env
+# Configurações do Servidor
+PORT=3333
+NODE_ENV=production
+DOCKER_ENV=true
+
+# Otimizações para WhatsApp
+SESSION_TIMEOUT=60
+SESSION_MAX_RECONNECT_ATTEMPTS=10
+SESSION_RECONNECT_DELAY=5000
+SESSION_HEALTH_CHECK_INTERVAL=15000
+
+# Segurança
+JWT_SECRET=sua_jwt_secret_super_secreta_com_32_caracteres
+VALID_API_KEYS=3fb57b986314face5622a786d7c6f8d68b2d2c8df1db6bfbc53589ab299bc19e
+
+# Performance
+QUEUE_CONCURRENT=2
+QUEUE_MAX_RETRIES=5
+REQUEST_TIMEOUT=45000
 ```
-PORT=3000
-URLBASE=http://localhost:3000
-NODE_ENV=development
-PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-MAX_REQUEST_SIZE=10mb
-SESSION_TIMEOUT=6 => QUANTIDADE DE HORAS QUE BOT VAI ESTA EM SESSAO
-QUEUE_CONCURRENT=1 => QUANTIDADE DE CONCORRENCIAS
-QUEUE_MAX_RETRIES=3 => QUANTIDADE DE RETENTATIVAS
-QUEUE_RETRY_DELAY=3000 => TEMPO DE RETENTATIVAS EM MILISSEGUNDOS
-BOT_ATIVO=N => N - Para Não (S - Para Sim)
-```
 
-### 2. Construa e Inicie os Containers com Docker Compose
+## 📱 Criando Sessões WhatsApp
 
-Agora que você tem o arquivo `.env` configurado, você pode rodar o Docker Compose para construir e iniciar os containers definidos no arquivo `docker-compose.yml`:
+### Método 1: Interface Web (Recomendado)
+1. Acesse: http://localhost:3333/sessions.html
+2. Digite um nome único para a sessão (3-50 caracteres)
+3. Clique em "Criar Sessão"
+4. QR Code aparece automaticamente via Socket.IO
+5. Escaneie com WhatsApp e pronto! 🎉
 
+### Método 2: API
 ```bash
-docker compose up --build
+# Criar sessão via API
+curl -X POST http://localhost:3333/api/whatsapp/start \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: sua_api_key" \
+  -d '{"session": "minha-sessao"}'
 ```
 
-Este comando irá:
+## 🔌 API Endpoints
 
-- Construir as imagens dos containers (se necessário).
-- Iniciar os containers conforme definido no `docker-compose.yml`.
-
-Após alguns instantes, os containers estarão rodando e você poderá acessar o ambiente de desenvolvimento localmente.
-
-### 4. Parar os Containers
-
-Para parar os containers, basta rodar o comando:
-
+### 🔐 Autenticação
 ```bash
-docker-compose down
+POST /api/auth/login          # Login com JWT
+POST /api/auth/refresh        # Renovar token
 ```
 
-Este comando irá parar e remover os containers, mas deixará as imagens intactas, o que permite que você os reinicie com `docker-compose up` rapidamente.
+### 📱 Gerenciamento de Sessões
+```bash
+GET    /api/whatsapp/sessions           # Listar todas as sessões
+POST   /api/whatsapp/start              # Criar nova sessão
+DELETE /api/whatsapp/logout/:session    # Desconectar sessão
+GET    /api/whatsapp/status/:session    # Status da sessão
+POST   /api/whatsapp/restart/:session   # Reiniciar sessão
+```
 
-## Dicas
+### 💬 Envio de Mensagens
+```bash
+POST /api/whatsapp/send-text     # Enviar texto
+POST /api/whatsapp/send-image    # Enviar imagem
+POST /api/whatsapp/send-file     # Enviar arquivo
+POST /api/whatsapp/send-audio    # Enviar áudio
+```
 
-- Se você quiser rodar o Docker em segundo plano (modo "detached"), use a flag `-d`:
+### 📊 Monitoramento
+```bash
+GET /api/health                  # Status da API
+GET /api/whatsapp/sessions       # Status das sessões
+```
 
-  ```bash
-  docker-compose up --build -d
-  ```
+## 🛠️ Comandos Úteis
 
-- Para visualizar os logs dos containers, utilize o comando:
+### Gerenciamento Docker
+```bash
+# Iniciar projeto (script automático)
+./start-docker.sh
 
-  ```bash
-  docker-compose logs
-  ```
+# Comandos manuais
+docker compose up -d              # Iniciar
+docker compose down               # Parar
+docker compose restart           # Reiniciar
+docker compose logs -f           # Ver logs
+docker compose ps                # Status
 
-- Caso precise reiniciar os containers, use:
+# Diagnóstico completo
+./diagnose.sh
+```
 
-  ```bash
-  docker-compose restart
-  ```
+### Solução de Problemas
+```bash
+# Limpeza completa (resolve 90% dos problemas)
+docker compose down -v
+docker system prune -f
+./start-docker.sh
 
-## Contribuições
+# Verificar logs de erro
+docker compose logs dynamuszap-api | grep -i error
 
-Se você deseja contribuir para este projeto, fique à vontade para criar um [pull request](https://github.com/JuniorFreitas/dynamuszap-api/pulls) ou relatar um [issue](https://github.com/JuniorFreitas/dynamuszap-api/issues) request. Certifique-se de seguir as diretrizes de codificação e incluir testes quando possível.
+# Verificar recursos
+docker stats dynamuszap-api
 
+# Testar conectividade
+curl http://localhost:3333/api/health
+```
 
-## License
+## 🚨 Problemas Comuns e Soluções
 
-Este projeto está licenciado sob a [MIT License](https://opensource.org/license/MIT).
+### ❌ Sessão não conecta
+```bash
+# Solução rápida
+docker compose restart
+./diagnose.sh
+
+# Limpeza de sessão corrompida
+rm -rf ./tokens/nome-da-sessao
+docker compose restart
+```
+
+### ❌ QR Code não aparece
+- Verificar Socket.IO: http://localhost:3333/socket.io/socket.io.js
+- Verificar console do navegador (F12)
+- Verificar CORS no `.env`
+
+### ❌ Container não inicia
+```bash
+# Verificar permissões
+sudo chown -R 1001:1001 ./tokens ./logs
+
+# Reconstruir imagem
+docker compose build --no-cache
+```
+
+### ❌ Sessões não persistem
+```bash
+# Verificar volumes
+docker compose config | grep -A 5 volumes
+
+# Testar permissões
+touch ./tokens/test.txt && rm ./tokens/test.txt
+```
+
+## 🛡️ Segurança Implementada
+
+- **🔒 Helmet**: Headers de segurança HTTP
+- **⚡ Rate Limiting**: 100 req/15min por IP
+- **🌐 CORS Restritivo**: Origins específicos
+- **🧹 Input Sanitization**: Limpeza automática de dados
+- **🔑 Autenticação Dupla**: JWT + API Keys
+- **🛡️ Brute Force Protection**: Proteção contra ataques
+- **📝 Security Logging**: Log de atividades suspeitas
+- **🔐 Container Security**: Usuário não-root, capabilities limitadas
+
+## 📊 Monitoramento e Logs
+
+### Logs Estruturados
+```bash
+# Logs em tempo real
+docker compose logs -f dynamuszap-api
+
+# Filtrar por tipo
+docker compose logs dynamuszap-api | grep -i error
+docker compose logs dynamuszap-api | grep -i session
+docker compose logs dynamuszap-api | grep -i api
+```
+
+### Métricas de Sistema
+```bash
+# Recursos do container
+docker stats dynamuszap-api
+
+# Diagnóstico completo
+./diagnose.sh
+
+# Health check
+curl http://localhost:3333/api/health | jq
+```
+
+## 📁 Estrutura Otimizada
+
+```
+dynamuszap-api/
+├── 🐳 Docker
+│   ├── docker-compose.yml         # Configuração principal
+│   ├── Dockerfile                 # Imagem otimizada
+│   └── start-docker.sh           # Script de inicialização
+├── 🔧 Configuração
+│   ├── .env                      # Variáveis de ambiente
+│   ├── env.example               # Template de configuração
+│   └── src/config/               # Configurações da aplicação
+├── 📱 Aplicação
+│   ├── src/                      # Código fonte
+│   ├── public/                   # Interface web
+│   └── tokens/                   # Sessões WhatsApp (persistente)
+├── 📊 Monitoramento
+│   ├── logs/                     # Logs da aplicação
+│   ├── diagnose.sh              # Script de diagnóstico
+│   └── WHATSAPP_TROUBLESHOOTING.md
+└── 📚 Documentação
+    ├── README.md                 # Este arquivo
+    ├── SESSIONS_MANAGER.md       # Gerenciamento de sessões
+    ├── API_ROUTES.md            # Documentação da API
+    └── DOCKER_SECURITY.md       # Segurança do Docker
+```
+
+## 🎯 Performance e Otimizações
+
+### Configurações Recomendadas para Produção
+```yaml
+# docker-compose.yml
+services:
+  dynamuszap-api:
+    mem_limit: 2g
+    mem_reservation: 1g
+    cpus: '2.0'
+    shm_size: '512m'
+    restart: unless-stopped
+```
+
+### Backup Automático
+```bash
+# Cron job para backup diário das sessões
+0 2 * * * tar -czf /backup/tokens_$(date +\%Y\%m\%d).tar.gz ./tokens/
+```
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch: `git checkout -b feature/nova-funcionalidade`
+3. Commit: `git commit -m 'Adiciona nova funcionalidade'`
+4. Push: `git push origin feature/nova-funcionalidade`
+5. Abra um Pull Request
+
+## 📞 Suporte e Documentação
+
+### 📚 Documentação Completa
+- **SESSIONS_MANAGER.md** - Gerenciamento avançado de sessões
+- **WHATSAPP_TROUBLESHOOTING.md** - Solução de problemas específicos
+- **API_ROUTES.md** - Documentação completa da API
+- **DOCKER_SECURITY.md** - Configurações de segurança
+
+### 🔧 Ferramentas de Debug
+- `./diagnose.sh` - Diagnóstico automático completo
+- `docker compose logs -f` - Logs em tempo real
+- http://localhost:3333/api-docs - Documentação interativa
+
+### 🆘 Suporte
+- **Issues**: Abra uma issue no repositório
+- **Logs**: Sempre inclua logs ao reportar problemas
+- **Diagnóstico**: Execute `./diagnose.sh` antes de reportar
+
+---
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT.
+
+**Desenvolvido com ❤️ para facilitar a integração com WhatsApp**

@@ -1,4 +1,5 @@
 const venom = require("venom-bot");
+const SessionManager = require("./SessionManager");
 
 class WhatsAppService {
   /**
@@ -31,24 +32,16 @@ class WhatsAppService {
   }
 
   /**
-   * Cria uma nova sessão do WhatsApp.
+   * Cria uma nova sessão do WhatsApp usando o SessionManager.
    */
-  async createSession(sessionName, onQrCode) {
+  async createSession(sessionName, onQrCode, onStatusChange = null) {
     if (!sessionName || !onQrCode) {
       throw new Error(
         "Parâmetros obrigatórios não fornecidos: sessionName, onQrCode"
       );
     }
 
-    return venom.create(
-      sessionName,
-      onQrCode,
-      (statusSession) => console.log("Status da sessão:", statusSession),
-      {
-        multidevice: true,
-        headless: "new",
-      }
-    );
+    return SessionManager.createSession(sessionName, onQrCode, onStatusChange);
   }
 
   /**
@@ -91,6 +84,15 @@ class WhatsAppService {
       console.error("Erro ao enviar mensagem de texto:", error);
       throw error;
     }
+  }
+
+  /**
+   * Envia uma mensagem de texto com retry automático
+   */
+  async sendTextMessageWithRetry(sessionName, phoneNumber, message) {
+    return this.executeWithRetry(sessionName, async (client) => {
+      return this.sendTextMessage(client, phoneNumber, message);
+    });
   }
 
   /**
@@ -227,6 +229,136 @@ class WhatsAppService {
     if (!client) throw new Error("Cliente não fornecido");
     if (!phoneNumber) throw new Error("Número de telefone não fornecido");
     if (!filePath) throw new Error("Caminho do arquivo não fornecido");
+  }
+
+  /**
+   * Obtém uma sessão existente ou tenta recuperá-la
+   */
+  async getOrRecoverSession(sessionName) {
+    let client = SessionManager.getSession(sessionName);
+
+    if (!client) {
+      console.log(
+        `[WhatsAppService] Sessão ${sessionName} não encontrada, tentando recuperar...`
+      );
+      // Tenta criar uma nova sessão se não existir
+      try {
+        client = await this.createSession(sessionName, (qrCode) => {
+          console.log(
+            `[WhatsAppService] QR Code para recuperação da sessão ${sessionName}`
+          );
+        });
+      } catch (error) {
+        console.error(
+          `[WhatsAppService] Erro ao recuperar sessão ${sessionName}:`,
+          error
+        );
+        throw new Error(
+          `Não foi possível recuperar a sessão ${sessionName}: ${error.message}`
+        );
+      }
+    }
+
+    return client;
+  }
+
+  /**
+   * Verifica se uma sessão está saudável
+   */
+  async checkSessionHealth(sessionName) {
+    try {
+      const client = SessionManager.getSession(sessionName);
+      if (!client) {
+        return { healthy: false, reason: "Sessão não encontrada" };
+      }
+
+      // Tenta obter o estado da conexão
+      const connectionState = await client.getConnectionState();
+      return {
+        healthy: connectionState === "CONNECTED",
+        reason: connectionState,
+        sessionName,
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        reason: error.message,
+        sessionName,
+      };
+    }
+  }
+
+  /**
+   * Lista todas as sessões ativas
+   */
+  getActiveSessions() {
+    return SessionManager.getActiveSessions();
+  }
+
+  /**
+   * Lista todas as sessões detectadas (ativas e inativas)
+   */
+  getAllDetectedSessions() {
+    return SessionManager.getAllDetectedSessions();
+  }
+
+  /**
+   * Remove uma sessão específica
+   */
+  async removeSession(sessionName) {
+    await SessionManager.cleanupSession(sessionName);
+  }
+
+  /**
+   * Executa operação com retry automático em caso de erro
+   */
+  async executeWithRetry(sessionName, operation, maxRetries = 3) {
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const client = await this.getOrRecoverSession(sessionName);
+        return await operation(client);
+      } catch (error) {
+        lastError = error;
+        console.warn(
+          `[WhatsAppService] Tentativa ${attempt}/${maxRetries} falhou para ${sessionName}:`,
+          error.message
+        );
+
+        // Se é um erro de sessão, tentar recuperar
+        if (attempt < maxRetries && this.isSessionError(error)) {
+          console.log(
+            `[WhatsAppService] Tentando recuperar sessão ${sessionName}...`
+          );
+          await this.removeSession(sessionName);
+          await new Promise((resolve) => setTimeout(resolve, 2000)); // Aguarda 2s
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Verifica se um erro é relacionado à sessão
+   */
+  isSessionError(error) {
+    const sessionErrors = [
+      "Navigation timeout",
+      "Page crashed",
+      "Session closed",
+      "Browser disconnected",
+      "Target closed",
+      "Protocol error",
+      "Connection closed",
+      "Evaluation failed",
+      "Session not authenticated",
+    ];
+
+    return sessionErrors.some((sessionError) =>
+      error.message.includes(sessionError)
+    );
   }
 }
 

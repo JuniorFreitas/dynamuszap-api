@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DynamusZap API - Socket.IO Demo</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/auth.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+
+    .header {
+      text-align: center;
+      color: #333;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 5px 15px;
+      border-radius: 20px;
+      color: white;
+      font-weight: bold;
+      margin: 5px;
+    }
+
+    .connected {
+      background: #28a745;
+    }
+
+    .disconnected {
+      background: #dc3545;
+    }
+
+    .reconnecting {
+      background: #ffc107;
+      color: #212529;
+    }
+
+    .event-log {
+      height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      padding: 10px;
+      background: #f8f9fa;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+
+    .event {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 4px solid #007bff;
+      background: white;
+    }
+
+    .event.qr-code {
+      border-left-color: #28a745;
+    }
+
+    .event.error {
+      border-left-color: #dc3545;
+    }
+
+    .event.reconnecting {
+      border-left-color: #ffc107;
+    }
+
+    .event.message {
+      border-left-color: #17a2b8;
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin: 10px 0;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-warning {
+      background: #ffc107;
+      color: #212529;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+
+    input[type="text"] {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin: 5px;
+    }
+
+    .qr-code {
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .qr-code img {
+      max-width: 300px;
+      border: 2px solid #007bff;
+      border-radius: 8px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🚀 DynamusZap API - Socket.IO Demo</h1>
+      <div id="connection-status" class="status disconnected">Desconectado</div>
+      <div id="socket-id"></div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="container">
+      <h3>📊 Controles</h3>
+      <div class="controls">
+        <button id="connect-btn" class="btn btn-success">Conectar</button>
+        <button id="disconnect-btn" class="btn btn-danger">Desconectar</button>
+        <button id="clear-log-btn" class="btn btn-warning">Limpar Log</button>
+        <button id="get-sessions-btn" class="btn btn-primary">Obter Sessões</button>
+        <a href="/sessions.html" class="btn btn-primary"
+          style="text-decoration: none; display: inline-flex; align-items: center;">
+          🚀 Gerenciar Sessões
+        </a>
+        <a href="/api-test.html" class="btn btn-success"
+          style="text-decoration: none; display: inline-flex; align-items: center;">
+          🧪 Testar APIs
+        </a>
+        <a href="/login.html" class="btn btn-warning"
+          style="text-decoration: none; display: inline-flex; align-items: center;">
+          🔐 Login
+        </a>
+      </div>
+
+      <h4>🎯 Inscrever em Sessão</h4>
+      <div class="controls">
+        <input type="text" id="session-input" placeholder="Nome da sessão" value="test">
+        <button id="subscribe-btn" class="btn btn-primary">Inscrever</button>
+        <button id="unsubscribe-btn" class="btn btn-warning">Desinscrever</button>
+      </div>
+
+      <h4>📱 QR Code</h4>
+      <div id="qr-container" class="qr-code">
+        <p>Nenhum QR Code disponível</p>
+      </div>
+    </div>
+
+    <div class="container">
+      <h3>📝 Log de Eventos</h3>
+      <div id="event-log" class="event-log"></div>
+    </div>
+  </div>
+
+  <div class="container">
+    <h3>📈 Estatísticas</h3>
+    <div id="stats">
+      <p>Conecte-se para ver estatísticas</p>
+    </div>
+  </div>
+
+  <script>
+    // Proteger página - verificar autenticação
+    if (!protectPage()) {
+      // Se não estiver autenticado, a função protectPage() já redirecionará
+    }
+
+    let socket = null;
+    let isConnected = false;
+
+    const statusEl = document.getElementById('connection-status');
+    const socketIdEl = document.getElementById('socket-id');
+    const eventLogEl = document.getElementById('event-log');
+    const qrContainerEl = document.getElementById('qr-container');
+    const statsEl = document.getElementById('stats');
+    const sessionInput = document.getElementById('session-input');
+
+    // Elementos de controle
+    const connectBtn = document.getElementById('connect-btn');
+    const disconnectBtn = document.getElementById('disconnect-btn');
+    const clearLogBtn = document.getElementById('clear-log-btn');
+    const getSessionsBtn = document.getElementById('get-sessions-btn');
+    const subscribeBtn = document.getElementById('subscribe-btn');
+    const unsubscribeBtn = document.getElementById('unsubscribe-btn');
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const eventEl = document.createElement('div');
+      eventEl.className = `event ${type}`;
+      eventEl.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+      eventLogEl.appendChild(eventEl);
+      eventLogEl.scrollTop = eventLogEl.scrollHeight;
+    }
+
+    function updateStatus(connected, socketId = null) {
+      isConnected = connected;
+      statusEl.textContent = connected ? 'Conectado' : 'Desconectado';
+      statusEl.className = `status ${connected ? 'connected' : 'disconnected'}`;
+      socketIdEl.textContent = socketId ? `Socket ID: ${socketId}` : '';
+
+      connectBtn.disabled = connected;
+      disconnectBtn.disabled = !connected;
+      subscribeBtn.disabled = !connected;
+      unsubscribeBtn.disabled = !connected;
+      getSessionsBtn.disabled = !connected;
+    }
+
+    function connect() {
+      if (socket) {
+        socket.disconnect();
+      }
+
+      socket = io();
+
+      socket.on('connect', () => {
+        log('✅ Conectado ao Socket.IO', 'success');
+        updateStatus(true, socket.id);
+      });
+
+      socket.on('disconnect', () => {
+        log('❌ Desconectado do Socket.IO', 'error');
+        updateStatus(false);
+      });
+
+      socket.on('welcome', (data) => {
+        log(`🎉 Bem-vindo! ${data.message}`, 'success');
+        log(`📋 Eventos disponíveis: ${data.availableEvents.join(', ')}`);
+        updateStatus(true, data.socketId);
+      });
+
+      // Eventos de QR Code
+      socket.on('qr-code', (data) => {
+        log(`📱 QR Code recebido para sessão: ${data.sessionName}`, 'qr-code');
+        qrContainerEl.innerHTML = `
+                    <h4>QR Code - ${data.sessionName}</h4>
+                    <img src="${data.qrCode}" alt="QR Code">
+                    <p><small>Escaneie com o WhatsApp</small></p>
+                `;
+      });
+
+      socket.on('qr-code-broadcast', (data) => {
+        log(`📡 QR Code broadcast para sessão: ${data.sessionName}`, 'qr-code');
+      });
+
+      // Eventos de status da sessão
+      socket.on('session-status-change', (data) => {
+        log(`🔄 Status da sessão ${data.sessionName}: ${data.status}`, 'info');
+      });
+
+      socket.on('session-connected', (data) => {
+        log(`✅ Sessão ${data.sessionName} conectada com sucesso!`, 'success');
+      });
+
+      socket.on('session-reconnecting', (data) => {
+        log(`🔄 Sessão ${data.sessionName} reconectando... Tentativa ${data.attempt}/${data.maxAttempts}`, 'reconnecting');
+      });
+
+      // Eventos de erro
+      socket.on('session-error', (data) => {
+        log(`❌ Erro na sessão ${data.sessionName}: ${data.error.message}`, 'error');
+      });
+
+      // Eventos de mensagens
+      socket.on('message-received', (data) => {
+        log(`📨 Mensagem recebida na sessão ${data.sessionName} de ${data.message.from}: ${data.message.body}`, 'message');
+      });
+
+      socket.on('message-sent', (data) => {
+        log(`📤 Mensagem enviada da sessão ${data.sessionName} para ${data.to}: ${data.message}`, 'message');
+      });
+
+      // Eventos de health check
+      socket.on('session-health-check', (data) => {
+        const status = data.healthy ? '✅' : '❌';
+        log(`${status} Health check sessão ${data.sessionName}: ${data.reason}`, data.healthy ? 'success' : 'error');
+      });
+
+      // Eventos de resposta
+      socket.on('all-sessions-status', (data) => {
+        log(`📊 Status de ${data.totalSessions} sessões recebido`);
+        updateStats(data);
+      });
+
+      socket.on('subscription-confirmed', (data) => {
+        log(`✅ Inscrito na sessão: ${data.sessionName}`, 'success');
+      });
+
+      socket.on('unsubscription-confirmed', (data) => {
+        log(`❌ Desinscrito da sessão: ${data.sessionName}`, 'warning');
+      });
+
+      socket.on('error', (data) => {
+        log(`❌ Erro: ${data.message}`, 'error');
+      });
+    }
+
+    function disconnect() {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    }
+
+    function subscribeToSession() {
+      const sessionName = sessionInput.value.trim();
+      if (!sessionName) {
+        alert('Digite o nome da sessão');
+        return;
+      }
+
+      if (socket && isConnected) {
+        socket.emit('subscribe-session', sessionName);
+        log(`📝 Solicitando inscrição na sessão: ${sessionName}`);
+      }
+    }
+
+    function unsubscribeFromSession() {
+      const sessionName = sessionInput.value.trim();
+      if (!sessionName) {
+        alert('Digite o nome da sessão');
+        return;
+      }
+
+      if (socket && isConnected) {
+        socket.emit('unsubscribe-session', sessionName);
+        log(`📝 Solicitando desinscrição da sessão: ${sessionName}`);
+      }
+    }
+
+    function getAllSessions() {
+      if (socket && isConnected) {
+        socket.emit('get-all-sessions');
+        log('📝 Solicitando status de todas as sessões');
+      }
+    }
+
+    function updateStats(data) {
+      statsEl.innerHTML = `
+                <h4>📈 Estatísticas das Sessões</h4>
+                <p><strong>Total de sessões:</strong> ${data.totalSessions}</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-top: 10px;">
+                    ${data.sessions.map(session => `
+                        <div style="padding: 10px; border: 1px solid #ddd; border-radius: 4px; background: ${session.healthy ? '#d4edda' : '#f8d7da'};">
+                            <strong>${session.sessionName}</strong><br>
+                            <small>Status: ${session.reason}</small><br>
+                            <small>Saudável: ${session.healthy ? '✅' : '❌'}</small>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+    }
+
+    function clearLog() {
+      eventLogEl.innerHTML = '';
+    }
+
+    // Event listeners
+    connectBtn.addEventListener('click', connect);
+    disconnectBtn.addEventListener('click', disconnect);
+    clearLogBtn.addEventListener('click', clearLog);
+    getSessionsBtn.addEventListener('click', getAllSessions);
+    subscribeBtn.addEventListener('click', subscribeToSession);
+    unsubscribeBtn.addEventListener('click', unsubscribeFromSession);
+
+    // Inicializar estado
+    updateStatus(false);
+
+    // Verificar autenticação e adicionar indicador de status
+    document.addEventListener('DOMContentLoaded', () => {
+      authManager.addAuthStatusIndicator();
+    });
+
+    // Auto-conectar
+    connect();
+  </script>
+</body>
+
+</html>

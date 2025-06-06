@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DynamusZap - Gerenciador de Sessões</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/auth.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      margin-bottom: 30px;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .header h1 {
+      color: #2d3748;
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .connection-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 25px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s ease;
+    }
+
+    .status-connected {
+      background: #10b981;
+      color: white;
+    }
+
+    .status-disconnected {
+      background: #ef4444;
+      color: white;
+    }
+
+    .status-connecting {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-bottom: 30px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card h2 {
+      color: #2d3748;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      color: #4a5568;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 12px;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      min-width: 120px;
+      justify-content: center;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: white;
+    }
+
+    .btn-warning:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+    }
+
+    .qr-container {
+      text-align: center;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 2px dashed #cbd5e0;
+      margin: 20px 0;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .qr-code {
+      max-width: 100%;
+      height: auto;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+    .qr-placeholder {
+      color: #a0aec0;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    .sessions-list {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-top: 20px;
+    }
+
+    .session-item {
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+
+    .session-item:hover {
+      background: #edf2f7;
+      transform: translateX(4px);
+    }
+
+    .session-info h4 {
+      color: #2d3748;
+      margin-bottom: 4px;
+    }
+
+    .session-status {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .session-status.connected {
+      background: #10b981;
+      color: white;
+    }
+
+    .session-status.disconnected {
+      background: #ef4444;
+      color: white;
+    }
+
+    .session-status.connecting {
+      background: #f59e0b;
+      color: white;
+    }
+
+    .session-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+      min-width: auto;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-top: 3px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 400px;
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .notification.show {
+      transform: translateX(0);
+    }
+
+    .notification.success {
+      border-left: 4px solid #10b981;
+    }
+
+    .notification.error {
+      border-left: 4px solid #ef4444;
+    }
+
+    .notification.info {
+      border-left: 4px solid #3b82f6;
+    }
+
+    .log-container {
+      grid-column: span 2;
+    }
+
+    .log-content {
+      background: #1a202c;
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 20px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .log-entry {
+      margin-bottom: 8px;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .log-timestamp {
+      color: #9ca3af;
+      font-size: 12px;
+    }
+
+    .log-event {
+      color: #60a5fa;
+      font-weight: 600;
+    }
+
+    .log-session {
+      color: #34d399;
+    }
+
+    .log-error {
+      color: #f87171;
+    }
+
+    @media (max-width: 768px) {
+      .main-content {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .log-container {
+        grid-column: span 1;
+      }
+
+      .header h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🚀 DynamusZap - Gerenciador de Sessões</h1>
+      <div id="connection-status" class="connection-status status-disconnected">
+        <span id="status-text">Desconectado</span>
+      </div>
+      <div id="socket-info" style="margin-top: 10px; color: #6b7280; font-size: 14px;"></div>
+      <div style="margin-top: 15px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        <a href="/index.html"
+          style="padding: 6px 12px; background: #667eea; color: white; text-decoration: none; border-radius: 20px; font-size: 13px;">🏠
+          Página Principal</a>
+        <a href="/api-test.html"
+          style="padding: 6px 12px; background: #10b981; color: white; text-decoration: none; border-radius: 20px; font-size: 13px;">🧪
+          Testar APIs</a>
+        <a href="/api-docs"
+          style="padding: 6px 12px; background: #f59e0b; color: white; text-decoration: none; border-radius: 20px; font-size: 13px;">📚
+          Documentação</a>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Create Session Card -->
+      <div class="card">
+        <h2>
+          <span>📱</span>
+          Criar Nova Sessão
+        </h2>
+
+        <form id="create-session-form">
+          <div class="form-group">
+            <label class="form-label" for="session-name">Nome da Sessão</label>
+            <input type="text" id="session-name" class="form-input" placeholder="Ex: cliente-vendas-01" required>
+          </div>
+
+          <button type="submit" id="create-btn" class="btn btn-primary">
+            <span id="create-btn-text">Criar Sessão</span>
+            <div id="create-btn-loading" class="loading" style="display: none;"></div>
+          </button>
+        </form>
+
+        <!-- QR Code Display -->
+        <div class="qr-container" id="qr-container">
+          <div class="qr-placeholder" id="qr-placeholder">
+            <p>🔗 QR Code aparecerá aqui após criar uma sessão</p>
+            <p style="font-size: 14px; margin-top: 8px;">Escaneie com seu WhatsApp para conectar</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sessions List Card -->
+      <div class="card">
+        <h2>
+          <span>📋</span>
+          Sessões Ativas
+          <button id="refresh-sessions" class="btn btn-warning btn-small" style="margin-left: auto;">
+            Atualizar
+          </button>
+        </h2>
+
+        <div id="sessions-list" class="sessions-list">
+          <div class="qr-placeholder">
+            <p>Carregando sessões...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Container -->
+    <div class="card log-container">
+      <h2>
+        <span>📝</span>
+        Log de Eventos
+        <button id="clear-log" class="btn btn-warning btn-small" style="margin-left: auto;">
+          Limpar Log
+        </button>
+      </h2>
+      <div id="log-content" class="log-content"></div>
+    </div>
+  </div>
+
+  <!-- Notification Template -->
+  <div id="notification" class="notification">
+    <div id="notification-content"></div>
+  </div>
+
+  <script>
+    // Proteger página - verificar autenticação
+    if (!protectPage()) {
+      // Se não estiver autenticado, a função protectPage() já redirecionará
+    }
+
+    class SessionManager {
+      constructor() {
+        this.socket = null;
+        this.isConnected = false;
+        this.currentQRSession = null;
+        this.sessions = new Map();
+        this.logEntries = [];
+        this.qrTimer = null;
+        this.autoRefreshTimer = null;
+
+        this.initializeElements();
+        this.initializeEventListeners();
+        this.connectSocket();
+        this.startAutoRefresh();
+      }
+
+      initializeElements() {
+        this.elements = {
+          connectionStatus: document.getElementById('connection-status'),
+          statusText: document.getElementById('status-text'),
+          socketInfo: document.getElementById('socket-info'),
+          createForm: document.getElementById('create-session-form'),
+          sessionNameInput: document.getElementById('session-name'),
+          createBtn: document.getElementById('create-btn'),
+          createBtnText: document.getElementById('create-btn-text'),
+          createBtnLoading: document.getElementById('create-btn-loading'),
+          qrContainer: document.getElementById('qr-container'),
+          qrPlaceholder: document.getElementById('qr-placeholder'),
+          sessionsList: document.getElementById('sessions-list'),
+          refreshSessions: document.getElementById('refresh-sessions'),
+          logContent: document.getElementById('log-content'),
+          clearLog: document.getElementById('clear-log'),
+          notification: document.getElementById('notification'),
+          notificationContent: document.getElementById('notification-content')
+        };
+      }
+
+      initializeEventListeners() {
+        // Form submission
+        this.elements.createForm.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.createSession();
+        });
+
+        // Refresh sessions
+        this.elements.refreshSessions.addEventListener('click', () => {
+          this.refreshSessions();
+        });
+
+        // Clear log
+        this.elements.clearLog.addEventListener('click', () => {
+          this.clearLog();
+        });
+      }
+
+      connectSocket() {
+        this.updateConnectionStatus('connecting', 'Conectando...');
+        this.log('SOCKET', 'Tentando conectar ao servidor...', 'info');
+
+        this.socket = io({
+          transports: ['websocket', 'polling'],
+          timeout: 10000,
+          forceNew: true
+        });
+
+        this.setupSocketEvents();
+      }
+
+      setupSocketEvents() {
+        // Connection events
+        this.socket.on('connect', () => {
+          this.isConnected = true;
+          this.updateConnectionStatus('connected', 'Conectado');
+          this.elements.socketInfo.textContent = `Socket ID: ${this.socket.id}`;
+          this.log('SOCKET', 'Conectado ao servidor com sucesso', 'success');
+          this.refreshSessions();
+        });
+
+        this.socket.on('disconnect', (reason) => {
+          this.isConnected = false;
+          this.updateConnectionStatus('disconnected', 'Desconectado');
+          this.elements.socketInfo.textContent = '';
+          this.log('SOCKET', `Desconectado: ${reason}`, 'error');
+        });
+
+        this.socket.on('connect_error', (error) => {
+          this.updateConnectionStatus('disconnected', 'Erro de Conexão');
+          this.log('SOCKET', `Erro de conexão: ${error.message}`, 'error');
+        });
+
+        // QR Code events
+        this.socket.on('qr-code', (data) => {
+          this.displayQRCode(data);
+          this.log('QR-CODE', `QR Code recebido para ${data.sessionName}`, 'info');
+        });
+
+        this.socket.on('qr-code-broadcast', (data) => {
+          this.displayQRCode(data);
+          this.log('QR-CODE', `QR Code broadcast para ${data.sessionName}`, 'info');
+        });
+
+        // Session events
+        this.socket.on('session-status-change', (data) => {
+          this.handleSessionStatusChange(data);
+        });
+
+        this.socket.on('session-connected', (data) => {
+          this.log('SESSION', `Sessão ${data.sessionName} conectada`, 'success');
+          this.showNotification(`Sessão ${data.sessionName} conectada com sucesso!`, 'success');
+          this.refreshSessions();
+          this.hideQRCode();
+        });
+
+        this.socket.on('session-error', (data) => {
+          this.log('SESSION', `Erro na sessão ${data.sessionName}: ${data.error.message}`, 'error');
+          this.showNotification(`Erro na sessão ${data.sessionName}`, 'error');
+          this.refreshSessions();
+        });
+
+        // Sessions list
+        this.socket.on('all-sessions-status', (data) => {
+          this.updateSessionsList(data);
+        });
+
+        // Welcome message
+        this.socket.on('welcome', (data) => {
+          this.log('SOCKET', data.message, 'info');
+        });
+
+        // Restart events
+        this.socket.on('session-restart-start', (data) => {
+          this.log('SESSION', `Reinício da sessão ${data.sessionName} iniciado`, 'info');
+        });
+
+        this.socket.on('session-restart-success', (data) => {
+          this.log('SESSION', `Sessão ${data.sessionName} reiniciada com sucesso`, 'success');
+          this.showNotification(`Sessão ${data.sessionName} reiniciada!`, 'success');
+          this.refreshSessions();
+        });
+
+        this.socket.on('session-restart-error', (data) => {
+          this.log('SESSION', `Erro ao reiniciar sessão ${data.sessionName}: ${data.error}`, 'error');
+          this.showNotification(`Erro ao reiniciar sessão ${data.sessionName}`, 'error');
+        });
+
+        // Remove events
+        this.socket.on('session-removed', (data) => {
+          this.log('SESSION', `Sessão ${data.sessionName} removida`, 'success');
+          this.refreshSessions();
+        });
+
+        this.socket.on('session-remove-error', (data) => {
+          this.log('SESSION', `Erro ao remover sessão ${data.sessionName}: ${data.error}`, 'error');
+        });
+
+        // File send events
+        this.socket.on('file-send-start', (data) => {
+          this.log('FILE', `Iniciando envio de ${data.fileType} para ${data.number}`, 'info');
+        });
+
+        this.socket.on('file-send-success', (data) => {
+          this.log('FILE', `${data.fileType} enviado com sucesso para ${data.number}`, 'success');
+        });
+
+        this.socket.on('file-send-error', (data) => {
+          this.log('FILE', `Erro ao enviar ${data.fileType} para ${data.number}: ${data.error}`, 'error');
+        });
+
+        // Bulk send events
+        this.socket.on('bulk-send-start', (data) => {
+          this.log('BULK', `Iniciando envio em massa para ${data.totalRecipients} contatos`, 'info');
+        });
+
+        this.socket.on('bulk-send-progress', (data) => {
+          this.log('BULK', `Progresso: ${data.current}/${data.total} - Enviando para ${data.currentNumber}`, 'info');
+        });
+
+        this.socket.on('bulk-send-complete', (data) => {
+          this.log('BULK', `Envio em massa concluído: ${data.successCount} sucessos, ${data.errorCount} erros`, 'success');
+          this.showNotification(`Envio em massa concluído! ${data.successCount} sucessos`, 'success');
+        });
+
+        this.socket.on('bulk-send-error', (data) => {
+          this.log('BULK', `Erro no envio em massa: ${data.error}`, 'error');
+        });
+
+        // Health check events
+        this.socket.on('api-health-check', (data) => {
+          this.log('HEALTH', `Health check: ${data.sessions.healthy}/${data.sessions.total} sessões saudáveis`, 'info');
+        });
+      }
+
+      async createSession() {
+        const sessionName = this.elements.sessionNameInput.value.trim();
+
+        if (!sessionName) {
+          this.showNotification('Por favor, insira um nome para a sessão', 'error');
+          return;
+        }
+
+        // Validação do nome da sessão
+        if (!/^[a-zA-Z0-9_-]+$/.test(sessionName)) {
+          this.showNotification('Nome da sessão deve conter apenas letras, números, hífen e underscore', 'error');
+          return;
+        }
+
+        if (sessionName.length < 3 || sessionName.length > 50) {
+          this.showNotification('Nome da sessão deve ter entre 3 e 50 caracteres', 'error');
+          return;
+        }
+
+        if (!this.isConnected) {
+          this.showNotification('Socket não conectado. Aguarde...', 'error');
+          return;
+        }
+
+        this.setCreatingState(true);
+        this.currentQRSession = sessionName;
+        this.hideQRCode();
+
+        try {
+          this.log('SESSION', `Iniciando criação da sessão: ${sessionName}`, 'info');
+
+          // Subscribe to session events
+          this.socket.emit('subscribe-session', sessionName);
+
+          // Make authenticated API call to create session
+          const response = await authenticatedFetch('/api/whatsapp/start', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ sessionName })
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            this.log('SESSION', `Sessão ${sessionName} criada com sucesso`, 'success');
+            this.showNotification(`Sessão ${sessionName} criada! Aguarde o QR Code...`, 'success');
+
+            // Clear form
+            this.elements.sessionNameInput.value = '';
+          } else {
+            throw new Error(result.message || 'Erro ao criar sessão');
+          }
+
+        } catch (error) {
+          let errorMessage = error.message;
+
+          // Verificar se é erro de JSON parse
+          if (error.message.includes('Unexpected token') && error.message.includes('<!DOCTYPE')) {
+            errorMessage = 'Servidor retornou HTML em vez de JSON - verifique se a API está funcionando';
+          }
+
+          this.log('SESSION', `Erro ao criar sessão ${sessionName}: ${errorMessage}`, 'error');
+          this.showNotification(`Erro ao criar sessão: ${errorMessage}`, 'error');
+          this.currentQRSession = null;
+        } finally {
+          this.setCreatingState(false);
+        }
+      }
+
+      displayQRCode(data) {
+        if (data.sessionName === this.currentQRSession || !this.currentQRSession) {
+          this.elements.qrContainer.innerHTML = `
+                        <div style="text-align: center;">
+                            <h3 style="color: #2d3748; margin-bottom: 15px;">
+                                📱 Sessão: ${data.sessionName}
+                            </h3>
+                            <img src="${data.qrCode}" alt="QR Code" class="qr-code">
+                            <p style="margin-top: 15px; color: #6b7280; font-size: 14px;">
+                                <strong>Escaneie este QR Code com seu WhatsApp</strong>
+                            </p>
+                            <p style="color: #9ca3af; font-size: 12px; margin-top: 5px;">
+                                Gerado em: ${new Date(data.timestamp).toLocaleString()}
+                            </p>
+                            <div style="margin-top: 15px;">
+                                <button onclick="sessionManager.hideQRCode()" class="btn btn-warning btn-small">
+                                    Cancelar Sessão
+                                </button>
+                            </div>
+                        </div>
+                    `;
+        }
+      }
+
+      hideQRCode() {
+        this.elements.qrContainer.innerHTML = `
+                    <div class="qr-placeholder" id="qr-placeholder">
+                        <p>🔗 QR Code aparecerá aqui após criar uma sessão</p>
+                        <p style="font-size: 14px; margin-top: 8px;">Escaneie com seu WhatsApp para conectar</p>
+                    </div>
+                `;
+        this.currentQRSession = null;
+      }
+
+      handleSessionStatusChange(data) {
+        this.log('SESSION', `Status da sessão ${data.sessionName}: ${data.status}`, 'info');
+
+        if (data.status === 'inChat') {
+          this.hideQRCode();
+        }
+
+        this.refreshSessions();
+      }
+
+      refreshSessions() {
+        if (this.isConnected) {
+          this.socket.emit('get-all-sessions');
+        }
+      }
+
+      updateSessionsList(data) {
+        if (!data.sessions || data.sessions.length === 0) {
+          this.elements.sessionsList.innerHTML = `
+                        <div class="qr-placeholder">
+                            <p>Nenhuma sessão ativa encontrada</p>
+                            <p style="font-size: 14px; margin-top: 8px;">Crie sua primeira sessão acima</p>
+                        </div>
+                    `;
+          return;
+        }
+
+        const sessionsHTML = data.sessions.map(session => `
+                    <div class="session-item">
+                        <div class="session-info">
+                            <h4>${session.sessionName}</h4>
+                            <div class="session-status ${session.healthy ? 'connected' : 'disconnected'}">
+                                ${session.healthy ? 'Conectada' : 'Desconectada'}
+                            </div>
+                        </div>
+                        <div class="session-actions">
+                                                 <button onclick="sessionManager.subscribeToSession('${session.sessionName}')" 
+                             class="btn btn-primary btn-small">
+                         Monitorar
+                     </button>
+                     ${session.healthy ? `
+                         <button onclick="sessionManager.restartSession('${session.sessionName}')" 
+                                 class="btn btn-warning btn-small">
+                             Reiniciar
+                         </button>
+                         <button onclick="sessionManager.removeSession('${session.sessionName}')" 
+                                 class="btn btn-danger btn-small">
+                             Remover
+                         </button>
+                     ` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+        this.elements.sessionsList.innerHTML = sessionsHTML;
+
+        this.log('SESSIONS', `${data.sessions.length} sessões carregadas`, 'info');
+      }
+
+      subscribeToSession(sessionName) {
+        if (this.isConnected) {
+          this.socket.emit('subscribe-session', sessionName);
+          this.log('SUBSCRIPTION', `Inscrito na sessão ${sessionName}`, 'info');
+          this.showNotification(`Monitorando sessão ${sessionName}`, 'info');
+        }
+      }
+
+      setCreatingState(creating) {
+        this.elements.createBtn.disabled = creating;
+        this.elements.createBtnText.style.display = creating ? 'none' : 'inline';
+        this.elements.createBtnLoading.style.display = creating ? 'inline-block' : 'none';
+      }
+
+      updateConnectionStatus(status, text) {
+        this.elements.connectionStatus.className = `connection-status status-${status}`;
+        this.elements.statusText.textContent = text;
+      }
+
+      log(type, message, level = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const entry = {
+          timestamp,
+          type,
+          message,
+          level
+        };
+
+        this.logEntries.unshift(entry);
+
+        // Keep only last 100 entries
+        if (this.logEntries.length > 100) {
+          this.logEntries = this.logEntries.slice(0, 100);
+        }
+
+        this.updateLogDisplay();
+      }
+
+      updateLogDisplay() {
+        const logHTML = this.logEntries.map(entry => `
+                    <div class="log-entry">
+                        <span class="log-timestamp">[${entry.timestamp}]</span>
+                        <span class="log-event ${entry.level === 'error' ? 'log-error' : ''}">[${entry.type}]</span>
+                        <span class="log-session">${entry.message}</span>
+                    </div>
+                `).join('');
+
+        this.elements.logContent.innerHTML = logHTML;
+        this.elements.logContent.scrollTop = 0;
+      }
+
+      clearLog() {
+        this.logEntries = [];
+        this.elements.logContent.innerHTML = '';
+        this.log('SYSTEM', 'Log limpo pelo usuário', 'info');
+      }
+
+      showNotification(message, type = 'info') {
+        this.elements.notificationContent.innerHTML = `
+                     <div style="flex: 1;">
+                         <strong>${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</strong>
+                         ${message}
+                     </div>
+                 `;
+
+        this.elements.notification.className = `notification ${type} show`;
+
+        setTimeout(() => {
+          this.elements.notification.classList.remove('show');
+        }, 5000);
+      }
+
+      startAutoRefresh() {
+        // Auto-refresh sessions every 30 seconds
+        this.autoRefreshTimer = setInterval(() => {
+          if (this.isConnected) {
+            this.refreshSessions();
+          }
+        }, 30000);
+      }
+
+      stopAutoRefresh() {
+        if (this.autoRefreshTimer) {
+          clearInterval(this.autoRefreshTimer);
+          this.autoRefreshTimer = null;
+        }
+      }
+
+      async restartSession(sessionName) {
+        if (!confirm(`Tem certeza que deseja reiniciar a sessão ${sessionName}?`)) {
+          return;
+        }
+
+        try {
+          this.log('SESSION', `Reiniciando sessão ${sessionName}...`, 'info');
+
+          const response = await authenticatedFetch(`/api/whatsapp/${sessionName}/restart`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            this.showNotification(`Sessão ${sessionName} está sendo reiniciada`, 'success');
+          } else {
+            throw new Error(result.message || 'Erro ao reiniciar sessão');
+          }
+
+        } catch (error) {
+          this.log('SESSION', `Erro ao reiniciar sessão ${sessionName}: ${error.message}`, 'error');
+          this.showNotification(`Erro ao reiniciar sessão: ${error.message}`, 'error');
+        }
+      }
+
+      async removeSession(sessionName) {
+        if (!confirm(`Tem certeza que deseja remover permanentemente a sessão ${sessionName}?`)) {
+          return;
+        }
+
+        try {
+          this.log('SESSION', `Removendo sessão ${sessionName}...`, 'info');
+
+          const response = await authenticatedFetch(`/api/whatsapp/${sessionName}/remove`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+
+          const result = await response.json();
+
+          if (response.ok) {
+            this.showNotification(`Sessão ${sessionName} foi removida`, 'success');
+            this.refreshSessions();
+          } else {
+            throw new Error(result.message || 'Erro ao remover sessão');
+          }
+
+        } catch (error) {
+          this.log('SESSION', `Erro ao remover sessão ${sessionName}: ${error.message}`, 'error');
+          this.showNotification(`Erro ao remover sessão: ${error.message}`, 'error');
+        }
+      }
+    }
+
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      // Adicionar indicador de autenticação
+      authManager.addAuthStatusIndicator();
+
+      window.sessionManager = new SessionManager();
+    });
+  </script>
+</body>
+
+</html>

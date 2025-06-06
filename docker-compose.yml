@@ -2,13 +2,53 @@ name: dynamuszap
 services:
   dynamuszap-api:
     container_name: dynamuszap-api
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "${PORT:-3333}:${PORT:-3333}"
     volumes:
-      - .:/app
-      - /app/node_modules
-      - ./tokens:/app/tokens
+      # Volumes mais específicos para segurança
+      - ./tokens:/app/tokens:rw
+      - ./logs:/app/logs:rw
+      - dynamuszap_node_modules:/app/node_modules:ro
     env_file:
       - .env
+    environment:
+      - NODE_ENV=development
+      - DOCKER_ENV=true
     restart: unless-stopped
+    # Configurações de segurança mais permissivas para troubleshooting
+    security_opt:
+      - no-new-privileges:false
+    # Capabilities necessárias para o Puppeteer/Chrome funcionar
+    cap_add:
+      - SYS_ADMIN
+      - NET_ADMIN
+      - SYS_PTRACE
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    read_only: false  # Necessário para logs e tokens
+    # Configurações específicas para o Chrome/Puppeteer
+    privileged: false
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/cache:noexec,nosuid,size=50m
+    # Limites de recursos aumentados para estabilidade
+    mem_limit: 2g
+    mem_reservation: 1g
+    cpus: '4.0'
+    # Healthcheck mais simples usando curl ou sem wget
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:${PORT:-3333}/api/health", "||", "exit", "1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # Configurações de disco para evitar problemas de espaço
+    shm_size: '512m'
+
+volumes:
+  dynamuszap_node_modules:

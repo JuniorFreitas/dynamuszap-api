@@ -4,8 +4,10 @@ const validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({
-      status: "erro",
+      status: "error",
+      message: "Dados de entrada inválidos",
       errors: errors.array(),
+      timestamp: new Date().toISOString(),
     });
   }
   next();
@@ -120,10 +122,30 @@ const sendImageValidation = [
   },
 ];
 
+const sendBulkMessageValidation = [
+  param("sessionName")
+    .trim()
+    .notEmpty()
+    .withMessage("Nome da sessão é obrigatório"),
+  body("recipients")
+    .isArray({ min: 1 })
+    .withMessage("Recipients deve ser um array não vazio"),
+  body("recipients.*")
+    .matches(/^\d{10,14}$/)
+    .withMessage("Formato de número de telefone inválido"),
+  body("message").trim().notEmpty().withMessage("Mensagem é obrigatória"),
+  body("delay")
+    .optional()
+    .isInt({ min: 100, max: 60000 })
+    .withMessage("Delay deve estar entre 100ms e 60s"),
+  validate,
+];
+
 module.exports = {
   startSessionValidation,
   sendMessageValidation,
   checkNumberValidation,
   sendPdfValidation,
   sendImageValidation,
+  sendBulkMessageValidation,
 };

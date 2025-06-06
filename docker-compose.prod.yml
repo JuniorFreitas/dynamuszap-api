@@ -1,0 +1,105 @@
+name: dynamuszap-prod
+services:
+  dynamuszap-api:
+    container_name: dynamuszap-api-prod
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${PORT:-3000}:3000"  # Bind apenas ao localhost
+    volumes:
+      # Volumes mínimos para produção
+      - ./tokens:/app/tokens:rw,Z
+      - ./logs:/app/logs:rw,Z
+      - dynamuszap_node_modules:/app/node_modules:ro,Z
+      # SSL certificates (se usar HTTPS)
+      - ./ssl:/app/ssl:ro,Z
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+      - DOCKER_ENV=true
+    restart: unless-stopped
+    
+    # Configurações de segurança avançadas
+    security_opt:
+      - no-new-privileges:true
+      - seccomp=unconfined  # Necessário para Chromium
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+      - SYS_ADMIN  # Necessário para Chromium no Docker
+    
+    # Container read-only com tmpfs para writes temporários
+    read_only: false
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/tmp:noexec,nosuid,size=50m
+    
+    # Limites de recursos
+    mem_limit: 1g
+    mem_reservation: 512m
+    cpus: '2.0'
+    
+    # Healthcheck robusto
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    
+    # Logging configurado
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Network isolation
+    networks:
+      - dynamuszap-network
+
+  # Nginx proxy reverso (opcional)
+  nginx:
+    image: nginx:alpine
+    container_name: dynamuszap-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs:ro
+    depends_on:
+      - dynamuszap-api
+    restart: unless-stopped
+    networks:
+      - dynamuszap-network
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx:noexec,nosuid,size=50m
+      - /var/run:noexec,nosuid,size=50m
+
+volumes:
+  dynamuszap_node_modules:
+    driver: local
+
+networks:
+  dynamuszap-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 
