@@ -8,11 +8,16 @@ RUN apk add --no-cache \
     nss \
     freetype \
     harfbuzz \
-    ttf-freefont
+    ttf-freefont \
+    dbus \
+    xvfb \
+    procps \
+    udev \
+    ca-certificates
 
 # Definir variáveis de ambiente para o Puppeteer e Node.js
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV NODE_ENV=production
 
 WORKDIR /app

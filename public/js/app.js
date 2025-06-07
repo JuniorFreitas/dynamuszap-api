@@ -6,7 +6,7 @@
 class DynamusZapApp {
   constructor() {
     this.socket = null;
-    this.apiUrl = "http://localhost:3333"; // Default fallback
+    this.apiUrl = "http://localhost:3333";
     this.currentRoom = null;
     this.messageHistory = [];
     this.logs = [];
@@ -171,6 +171,12 @@ class DynamusZapApp {
     document.getElementById("syncWhatsApp")?.addEventListener("click", () => {
       this.syncWhatsAppStatus();
     });
+
+    document
+      .getElementById("cleanLocksWhatsApp")
+      ?.addEventListener("click", () => {
+        this.cleanSingletonLocks();
+      });
   }
 
   setupSettingsHandlers() {
@@ -384,20 +390,18 @@ class DynamusZapApp {
 
   startPeriodicUpdates() {
     // Update stats every 5 seconds
-    setInterval(() => {
-      this.updateStats();
-      this.updateUptime();
-    }, 5000);
-
-    // Update dashboard every 10 seconds
-    setInterval(() => {
-      this.updateDashboard();
-    }, 10000);
-
-    // Check WhatsApp status every 15 seconds
-    setInterval(() => {
-      this.checkWhatsAppStatus();
-    }, 15000);
+    // setInterval(() => {
+    //   this.updateStats();
+    //   this.updateUptime();
+    // }, 5000);
+    // // Update dashboard every 10 seconds
+    // setInterval(() => {
+    //   this.updateDashboard();
+    // }, 10000);
+    // // Check WhatsApp status every 15 seconds
+    // setInterval(() => {
+    //   this.checkWhatsAppStatus();
+    // }, 15000);
   }
 
   async updateStats() {
@@ -862,6 +866,45 @@ class DynamusZapApp {
       this.stats.whatsappStatus = "Offline";
       this.updateStatsDisplay();
       this.showNotification("Erro ao sincronizar status", "error");
+    }
+  }
+
+  async cleanSingletonLocks() {
+    try {
+      this.addLog("Limpando arquivos SingletonLock...", "info");
+      this.showNotification("Limpando arquivos SingletonLock...", "info");
+
+      const response = await fetch(`${this.apiUrl}/api/whatsapp/clean-locks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // sessionName: "default" // Deixar vazio para limpar todas as sessões
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.status === "success") {
+        this.showNotification("SingletonLock limpo com sucesso!", "success");
+        this.addLog("Arquivos SingletonLock limpos", "success");
+
+        // Aguardar um pouco e verificar status
+        setTimeout(() => {
+          this.checkWhatsAppStatus();
+        }, 2000);
+      } else {
+        this.showNotification(
+          `Erro ao limpar locks: ${result.message}`,
+          "error"
+        );
+        this.addLog(`Erro ao limpar locks: ${result.message}`, "error");
+      }
+    } catch (error) {
+      console.error("Erro ao limpar SingletonLocks:", error);
+      this.showNotification("Erro ao limpar SingletonLocks", "error");
+      this.addLog("Erro ao limpar SingletonLocks", "error");
     }
   }
 

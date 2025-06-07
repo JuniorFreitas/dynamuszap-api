@@ -1,6 +1,7 @@
 const WhatsAppService = require("../services/whatsService.js");
 const MenuService = require("../services/MenuService.js");
 const Session = require("../models/Session");
+const SessionCleaner = require("../utils/sessionCleaner");
 const fs = require("fs");
 const path = require("path");
 
@@ -667,6 +668,43 @@ class WhatsAppController {
       res.status(500).json({
         status: "error",
         message: error.message,
+      });
+    }
+  }
+
+  async cleanSingletonLocks(req, res) {
+    try {
+      const { sessionName } = req.body;
+
+      if (sessionName) {
+        // Limpar sessão específica
+        console.log(
+          `🧹 Limpando SingletonLock para sessão específica: ${sessionName}`
+        );
+        SessionCleaner.cleanSingletonLock(sessionName);
+        SessionCleaner.cleanSessionCache(sessionName);
+
+        res.json({
+          status: "success",
+          message: `SingletonLock limpo para a sessão: ${sessionName}`,
+          data: { sessionName },
+        });
+      } else {
+        // Limpar todas as sessões
+        console.log(`🧹 Limpando SingletonLock para todas as sessões`);
+        SessionCleaner.cleanAllSingletonLocks();
+
+        res.json({
+          status: "success",
+          message: "SingletonLock limpo para todas as sessões",
+          data: { action: "clean_all" },
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao limpar SingletonLock:", error);
+      res.status(500).json({
+        status: "error",
+        message: "Erro ao limpar arquivos SingletonLock: " + error.message,
       });
     }
   }

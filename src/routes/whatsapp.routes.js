@@ -126,6 +126,28 @@ router.post("/disconnect", WhatsAppController.disconnectSession);
  */
 router.get("/sessions", WhatsAppController.listSessions);
 
+/**
+ * @swagger
+ * /api/whatsapp/clean-locks:
+ *   post:
+ *     summary: Clean SingletonLock files for all sessions
+ *     tags: [Maintenance]
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               sessionName:
+ *                 type: string
+ *                 description: Clean specific session (optional, if empty cleans all)
+ *                 default: ""
+ *     responses:
+ *       200:
+ *         description: SingletonLock files cleaned successfully
+ */
+router.post("/clean-locks", WhatsAppController.cleanSingletonLocks);
+
 // Manter compatibilidade com rota antiga
 router.post("/start", startSessionValidation, WhatsAppController.startSession);
 

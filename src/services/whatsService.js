@@ -1,4 +1,6 @@
 const venom = require("venom-bot");
+const SessionCleaner = require("../utils/sessionCleaner");
+const { getPuppeteerConfig } = require("../config/puppeteer.config");
 
 class WhatsAppService {
   /**
@@ -40,6 +42,14 @@ class WhatsAppService {
       );
     }
 
+    // Limpar arquivos SingletonLock antes de criar a sessão
+    console.log(`🧹 Limpando SingletonLock para sessão: ${sessionName}`);
+    SessionCleaner.cleanSingletonLock(sessionName);
+    SessionCleaner.cleanSessionCache(sessionName);
+
+    // Usar configuração otimizada do Puppeteer
+    const puppeteerConfig = getPuppeteerConfig(sessionName);
+
     return venom.create(
       sessionName,
       onQrCode,
@@ -49,29 +59,7 @@ class WhatsAppService {
           console.log("WhatsApp conectado com sucesso!");
         }
       },
-      {
-        multidevice: true,
-        headless: "new",
-        devtools: false,
-        useChrome: true,
-        debug: false,
-        logQR: true,
-        browserWS: "",
-        addProxy: [""],
-        puppeteerOptions: {
-          userDataDir: `./tokens/${sessionName}`,
-          args: [
-            "--no-sandbox",
-            "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage",
-            "--disable-accelerated-2d-canvas",
-            "--no-first-run",
-            "--no-zygote",
-            "--disable-gpu",
-          ],
-        },
-        session: sessionName,
-      }
+      puppeteerConfig
     );
   }
 
